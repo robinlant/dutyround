@@ -82,13 +82,13 @@ func generateCSRFToken() string {
 func AuthRequired(users repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		s := sessions.Default(c)
-		v := s.Get(sessionUserID)
-		if v == nil {
+		userID, ok := sessionUserIDFromSession(s)
+		if s.Get(sessionUserID) == nil {
 			redirectToLogin(c)
 			return
 		}
-		userID, ok := v.(int64)
 		if !ok {
+			clearSessionUser(c, s)
 			redirectToLogin(c)
 			return
 		}
@@ -96,6 +96,7 @@ func AuthRequired(users repository.UserRepository) gin.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				slog.Warn("auth: session user not found", "user_id", userID)
+				clearSessionUser(c, s)
 				redirectToLogin(c)
 				return
 			}
@@ -126,6 +127,22 @@ func RoleRequired(roles ...domain.Role) gin.HandlerFunc {
 			return
 		}
 		c.Next()
+	}
+}
+
+func sessionUserIDFromSession(s sessions.Session) (int64, bool) {
+	v := s.Get(sessionUserID)
+	userID, ok := v.(int64)
+	if !ok || userID <= 0 {
+		return 0, false
+	}
+	return userID, true
+}
+
+func clearSessionUser(c *gin.Context, s sessions.Session) {
+	s.Delete(sessionUserID)
+	if err := s.Save(); err != nil {
+		slog.Error("auth: failed to clear session user", "error", err, "ip", c.ClientIP())
 	}
 }
 
