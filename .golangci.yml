@@ -1,0 +1,27 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+
+  exclusions:
+    paths:
+      - migrations
+      - static
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    paths:
+      - migrations
+      - static
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 5
