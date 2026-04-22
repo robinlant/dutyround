@@ -137,3 +137,19 @@ To build the Docker image locally:
 docker build -t dutyround .
 docker run -d -p 8080:8080 -v dutyround-data:/data dutyround
 ```
+
+---
+
+## Releases
+
+Releases are tagged automatically after CI passes on `main`. A successful CI run creates the next SemVer tag, then dispatches the release workflow for that tag. The release workflow publishes the container image to GHCR and creates the GitHub release.
+
+The next SemVer tag is calculated from Conventional Commits since the latest stable `vX.Y.Z` tag:
+
+| Commit | Version bump |
+|--------|--------------|
+| `fix:` | Patch |
+| `feat:` | Minor |
+| `feat!:` or `BREAKING CHANGE:` | Major |
+
+Commits without `fix:`, `feat:`, or a breaking-change marker do not create a release tag.

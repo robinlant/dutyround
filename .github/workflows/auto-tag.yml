@@ -1,0 +1,120 @@
+name: Auto SemVer Tag
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    branches: [main]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: auto-semver-tag-main
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create SemVer tag
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Calculate next tag
+        id: semver
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          latest_tag="$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [[ -z "$latest_tag" ]]; then
+            current_version="0.0.0"
+            commit_range=""
+          else
+            current_version="${latest_tag#v}"
+            commit_range="${latest_tag}..HEAD"
+          fi
+
+          commits="$(git log --format='%B%n==END==' $commit_range)"
+
+          bump=""
+          if grep -Eq '(^|[[:space:]])BREAKING CHANGE:|^[a-z]+(\([^)]+\))?!:' <<< "$commits"; then
+            bump="major"
+          elif grep -Eq '^feat(\([^)]+\))?:' <<< "$commits"; then
+            bump="minor"
+          elif grep -Eq '^fix(\([^)]+\))?:' <<< "$commits"; then
+            bump="patch"
+          fi
+
+          if [[ -z "$bump" ]]; then
+            echo "No feat, fix, or breaking-change commits found. Skipping tag."
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS=. read -r major minor patch <<< "$current_version"
+          case "$bump" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          next_tag="v${major}.${minor}.${patch}"
+          if git rev-parse -q --verify "refs/tags/${next_tag}" >/dev/null; then
+            echo "Tag ${next_tag} already exists. Skipping tag."
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "should_tag=true"
+            echo "latest_tag=${latest_tag}"
+            echo "bump=${bump}"
+            echo "next_tag=${next_tag}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.semver.outputs.should_tag == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${{ steps.semver.outputs.next_tag }}" \
+            -m "Release ${{ steps.semver.outputs.next_tag }}"
+          git push origin "${{ steps.semver.outputs.next_tag }}"
+
+      - name: Dispatch release workflow
+        if: steps.semver.outputs.should_tag == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref main -f tag="${{ steps.semver.outputs.next_tag }}"
+
+      - name: Tag summary
+        if: steps.semver.outputs.should_tag == 'true'
+        run: |
+          {
+            echo "Created ${{ steps.semver.outputs.next_tag }}"
+            echo ""
+            echo "Bump: ${{ steps.semver.outputs.bump }}"
+            echo "Previous tag: ${{ steps.semver.outputs.latest_tag || 'none' }}"
+            echo "Release workflow: dispatched explicitly after tag push"
+          } >> "$GITHUB_STEP_SUMMARY"
