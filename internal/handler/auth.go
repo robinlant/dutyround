@@ -24,11 +24,22 @@ func NewAuthHandler(users repository.UserRepository) *AuthHandler {
 }
 
 func (h *AuthHandler) ShowLogin(c *gin.Context) {
-	// Redirect already-authenticated users
+	// Redirect already-authenticated users, but clear stale auth cookies.
 	s := sessions.Default(c)
-	if s.Get(sessionUserID) != nil {
-		c.Redirect(http.StatusFound, "/")
-		return
+	if userID, ok := sessionUserIDFromSession(s); ok {
+		if _, err := h.users.FindByID(c.Request.Context(), userID); err == nil {
+			c.Redirect(http.StatusFound, "/")
+			return
+		} else if errors.Is(err, sql.ErrNoRows) {
+			slog.Warn("auth: session user not found", "user_id", userID)
+			clearSessionUser(c, s)
+		} else {
+			slog.Error("login: db error looking up session user", "user_id", userID, "error", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+	} else if s.Get(sessionUserID) != nil {
+		clearSessionUser(c, s)
 	}
 	Page(c, "login.html", gin.H{
 		"CurrentUser": domain.User{},
