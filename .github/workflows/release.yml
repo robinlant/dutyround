@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: SemVer tag to release, for example v1.2.3
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,6 +17,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
   release:
@@ -18,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -38,11 +47,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ !contains(github.ref, '-') }}
+            type=raw,value=latest,enable=${{ !contains(env.RELEASE_TAG, '-') }}
             type=sha,prefix=
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ env.RELEASE_TAG }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_TAG }}
           labels: |
             org.opencontainers.image.title=DutyRound
             org.opencontainers.image.description=A self-hosted duty management platform for teams.
@@ -64,7 +73,7 @@ jobs:
       - name: Generate release body
         id: body
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${RELEASE_TAG}"
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           {
             echo 'content<<EOF'
@@ -91,7 +100,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: DutyRound ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: DutyRound ${{ env.RELEASE_TAG }}
           body: ${{ steps.body.outputs.content }}
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref, '-') }}
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
