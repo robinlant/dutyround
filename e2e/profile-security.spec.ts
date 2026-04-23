@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext, type Locator } from '@playwright/test';
 
 test.use({ baseURL: 'http://localhost:3992' });
 
@@ -44,6 +44,56 @@ async function createUser(
   });
   // The endpoint redirects on success, so 200 or 302 are both fine
   expect([200, 302].includes(resp.status())).toBeTruthy();
+}
+
+function uniqueEmail(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}@test.com`;
+}
+
+async function expectPasswordToggleBehavior(
+  toggle: Locator,
+  input: Locator,
+  options: {
+    controlId: string;
+    showLabel: string;
+    hideLabel: string;
+    showText?: string;
+    hideText?: string;
+    expectedValue?: string;
+  },
+) {
+  const visibleText = toggle.locator('[data-password-toggle-text]');
+
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-controls', options.controlId);
+  await expect(toggle).toHaveAccessibleName(options.showLabel);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(toggle).toHaveAttribute('title', options.showLabel);
+  await expect(visibleText).toHaveText(options.showText ?? 'Show');
+  await expect(input).toHaveAttribute('type', 'password');
+  if (options.expectedValue !== undefined) {
+    await expect(input).toHaveValue(options.expectedValue);
+  }
+
+  await toggle.click();
+  await expect(input).toHaveAttribute('type', 'text');
+  await expect(toggle).toHaveAccessibleName(options.hideLabel);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(toggle).toHaveAttribute('title', options.hideLabel);
+  await expect(visibleText).toHaveText(options.hideText ?? 'Hide');
+  if (options.expectedValue !== undefined) {
+    await expect(input).toHaveValue(options.expectedValue);
+  }
+
+  await toggle.click();
+  await expect(input).toHaveAttribute('type', 'password');
+  await expect(toggle).toHaveAccessibleName(options.showLabel);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(toggle).toHaveAttribute('title', options.showLabel);
+  await expect(visibleText).toHaveText(options.showText ?? 'Show');
+  if (options.expectedValue !== undefined) {
+    await expect(input).toHaveValue(options.expectedValue);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -255,4 +305,201 @@ test('9 - old session is invalidated after password change', async ({ browser })
 
   await ctxA.close();
   await ctxB.close();
+});
+
+// ---------------------------------------------------------------------------
+// 10. Login password visibility toggle changes the field type and label text
+// ---------------------------------------------------------------------------
+test('10 - login password visibility toggle switches type, preserves value, and updates visible text', async ({ page }) => {
+  await page.context().addCookies([
+    { name: 'dr-lang', value: 'en', domain: 'localhost', path: '/' },
+  ]);
+  await page.goto('/login');
+
+  const passwordInput = page.locator('#login-password');
+  const toggle = page.locator('button[aria-controls="login-password"]');
+
+  await passwordInput.fill('visible-secret-123');
+
+  await expectPasswordToggleBehavior(toggle, passwordInput, {
+    controlId: 'login-password',
+    showLabel: 'Show password',
+    hideLabel: 'Hide password',
+    expectedValue: 'visible-secret-123',
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11. Profile password change still works after using both visibility toggles
+// ---------------------------------------------------------------------------
+test('11 - profile password form toggles both fields and still submits successfully', async ({ browser }) => {
+  const email = uniqueEmail('profile-toggle');
+
+  const setupCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
+  const setupPage = await setupCtx.newPage();
+  await login(setupPage, 'secadmin@test.com', 'password123');
+  await createUser(setupPage, 'Profile Toggle User', email, 'password123', 'participant');
+  await setupCtx.close();
+
+  const userCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
+  const page = await userCtx.newPage();
+  await login(page, email, 'password123');
+  await page.goto('/profile');
+
+  const currentPassword = page.locator('#profile-current-password');
+  const newPassword = page.locator('#profile-password');
+
+  await currentPassword.fill('password123');
+  await newPassword.fill('profile-new-456');
+
+  await expectPasswordToggleBehavior(page.locator('button[aria-controls="profile-current-password"]'), currentPassword, {
+    controlId: 'profile-current-password',
+    showLabel: 'Show current password',
+    hideLabel: 'Hide current password',
+    expectedValue: 'password123',
+  });
+  await expectPasswordToggleBehavior(page.locator('button[aria-controls="profile-password"]'), newPassword, {
+    controlId: 'profile-password',
+    showLabel: 'Show new password',
+    hideLabel: 'Hide new password',
+    expectedValue: 'profile-new-456',
+  });
+
+  await page.locator('form[action="/profile/password"] button[type="submit"]').click();
+  await expect(page.locator('.flash-success')).toContainText('Password updated.');
+
+  const verifyCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
+  const verifyPage = await verifyCtx.newPage();
+  await login(verifyPage, email, 'profile-new-456');
+  await verifyPage.goto('/profile');
+  await expect(verifyPage).toHaveURL(/\/profile$/);
+
+  await verifyCtx.close();
+  await userCtx.close();
+});
+
+// ---------------------------------------------------------------------------
+// 12. Settings SMTP password toggle updates text and the form still saves
+// ---------------------------------------------------------------------------
+test('12 - settings password toggle updates state and saving settings keeps admin form functional', async ({ page }) => {
+  await login(page, 'secadmin@test.com', 'password123');
+  await page.goto('/settings');
+
+  const smtpPassword = page.locator('#smtp-password');
+  await smtpPassword.fill('smtp-secret-789');
+
+  await expectPasswordToggleBehavior(page.locator('button[aria-controls="smtp-password"]'), smtpPassword, {
+    controlId: 'smtp-password',
+    showLabel: 'Show SMTP password',
+    hideLabel: 'Hide SMTP password',
+    expectedValue: 'smtp-secret-789',
+  });
+
+  await page.fill('#smtp-host', 'smtp.example.test');
+  await page.fill('#smtp-port', '2525');
+  await page.fill('#smtp-username', 'mailer@example.test');
+  await page.fill('#sender-name', 'DutyRound QA');
+  await page.fill('#sender-email', 'noreply@example.test');
+  await page.fill('#max-emails', '3');
+  await page.fill('#reminder-days', '5');
+
+  await page.locator('form[action="/settings"] button[type="submit"]').click();
+  await expect(page.locator('.flash-success')).toContainText('Email settings saved.');
+  await expect(page.locator('#smtp-password')).toHaveValue('smtp-secret-789');
+  await expect(page.locator('#smtp-host')).toHaveValue('smtp.example.test');
+});
+
+// ---------------------------------------------------------------------------
+// 13. Users create form toggle updates text and the admin form still submits
+// ---------------------------------------------------------------------------
+test('13 - users create form toggle updates state and user creation still works', async ({ page }) => {
+  const email = uniqueEmail('created-user');
+
+  await login(page, 'secadmin@test.com', 'password123');
+  await page.goto('/users');
+
+  const createPassword = page.locator('#create-password');
+  await createPassword.fill('create-user-456');
+
+  await expectPasswordToggleBehavior(page.locator('button[aria-controls="create-password"]'), createPassword, {
+    controlId: 'create-password',
+    showLabel: 'Show new password',
+    hideLabel: 'Hide new password',
+    expectedValue: 'create-user-456',
+  });
+
+  await page.fill('#create-name', 'Created User QA');
+  await page.fill('#create-email', email);
+  await page.locator('form[action="/users"] button[type="submit"]').click();
+
+  await expect(page.locator('.flash-success')).toContainText('User created.');
+  await expect(page.locator('.user-list-item', { hasText: email })).toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
+// 14. Users set-password toggle updates text and the admin password form works
+// ---------------------------------------------------------------------------
+test('14 - users set-password toggle updates state and password reset still works', async ({ browser }) => {
+  const email = uniqueEmail('reset-user');
+
+  const adminCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
+  const adminPage = await adminCtx.newPage();
+  await login(adminPage, 'secadmin@test.com', 'password123');
+  await createUser(adminPage, 'Reset User QA', email, 'password123', 'participant');
+
+  await adminPage.goto('/users');
+  const userRow = adminPage.locator('.user-list-item', { hasText: email });
+  const setPasswordInput = userRow.locator('form[action$="/set-password"] input[name="password"]');
+  const setPasswordToggle = userRow.locator('form[action$="/set-password"] button[type="button"]');
+
+  await setPasswordInput.fill('reset-pass-789');
+  await expectPasswordToggleBehavior(setPasswordToggle, setPasswordInput, {
+    controlId: await setPasswordInput.getAttribute('id') as string,
+    showLabel: 'Show new password',
+    hideLabel: 'Hide new password',
+    expectedValue: 'reset-pass-789',
+  });
+
+  await userRow.locator('form[action$="/set-password"] button[type="submit"]').click();
+  await adminPage.waitForLoadState('networkidle');
+
+  const userCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
+  const userPage = await userCtx.newPage();
+  await login(userPage, email, 'reset-pass-789');
+  await userPage.goto('/profile');
+  await expect(userPage).toHaveURL(/\/profile$/);
+
+  await userCtx.close();
+  await adminCtx.close();
+});
+
+// ---------------------------------------------------------------------------
+// 15. Theme selection persists across navigation and reloads
+// ---------------------------------------------------------------------------
+test('15 - theme toggle persists the selected theme across navigation and reload', async ({ page }) => {
+  await login(page, 'secadmin@test.com', 'password123');
+  await page.goto('/profile');
+
+  const html = page.locator('html');
+  const themeButton = page.locator('#theme-btn');
+
+  await expect(themeButton).toBeVisible();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  await themeButton.click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to dark');
+
+  const storedThemeAfterToggle = await page.evaluate(() => localStorage.getItem('dr-theme'));
+  expect(storedThemeAfterToggle).toBe('light');
+
+  await page.goto('/calendar');
+  await expect(html).toHaveAttribute('data-theme', 'light');
+
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to dark');
+
+  const storedThemeAfterReload = await page.evaluate(() => localStorage.getItem('dr-theme'));
+  expect(storedThemeAfterReload).toBe('light');
 });

@@ -256,9 +256,19 @@ var en = map[string]string{
 	"settings.noteDesc":             "Admins do not receive any notification emails. The \"Max Emails Per Day\" setting prevents spamming users.",
 
 	// Login
-	"login.email":    "Email",
-	"login.password": "Password",
-	"login.signIn":   "Sign in",
+	"login.email":           "Email",
+	"login.password":        "Password",
+	"login.signIn":          "Sign in",
+	"password.show":         "Show",
+	"password.hide":         "Hide",
+	"password.showPassword": "Show password",
+	"password.hidePassword": "Hide password",
+	"password.showCurrent":  "Show current password",
+	"password.hideCurrent":  "Hide current password",
+	"password.showNew":      "Show new password",
+	"password.hideNew":      "Hide new password",
+	"password.showSMTP":     "Show SMTP password",
+	"password.hideSMTP":     "Hide SMTP password",
 
 	// Error page
 	"error.notFound":       "Not Found",
@@ -638,9 +648,19 @@ var de = map[string]string{
 	"settings.noteDesc":             "Admins erhalten keine Benachrichtigungs-E-Mails. Die Einstellung \u201eMax. E-Mails pro Tag\u201c verhindert Spam.",
 
 	// Login
-	"login.email":    "E-Mail",
-	"login.password": "Passwort",
-	"login.signIn":   "Anmelden",
+	"login.email":           "E-Mail",
+	"login.password":        "Passwort",
+	"login.signIn":          "Anmelden",
+	"password.show":         "Anzeigen",
+	"password.hide":         "Verbergen",
+	"password.showPassword": "Passwort anzeigen",
+	"password.hidePassword": "Passwort verbergen",
+	"password.showCurrent":  "Aktuelles Passwort anzeigen",
+	"password.hideCurrent":  "Aktuelles Passwort verbergen",
+	"password.showNew":      "Neues Passwort anzeigen",
+	"password.hideNew":      "Neues Passwort verbergen",
+	"password.showSMTP":     "SMTP-Passwort anzeigen",
+	"password.hideSMTP":     "SMTP-Passwort verbergen",
 
 	// Error page
 	"error.notFound":       "Nicht gefunden",
@@ -1020,9 +1040,19 @@ var ua = map[string]string{
 	"settings.noteDesc":             "Адміни не отримують сповіщень. Налаштування \u201eМакс. листів на день\u201c запобігає спаму.",
 
 	// Login
-	"login.email":    "Ел. пошта",
-	"login.password": "Пароль",
-	"login.signIn":   "Увійти",
+	"login.email":           "Ел. пошта",
+	"login.password":        "Пароль",
+	"login.signIn":          "Увійти",
+	"password.show":         "Показати",
+	"password.hide":         "Сховати",
+	"password.showPassword": "Показати пароль",
+	"password.hidePassword": "Сховати пароль",
+	"password.showCurrent":  "Показати поточний пароль",
+	"password.hideCurrent":  "Сховати поточний пароль",
+	"password.showNew":      "Показати новий пароль",
+	"password.hideNew":      "Сховати новий пароль",
+	"password.showSMTP":     "Показати SMTP пароль",
+	"password.hideSMTP":     "Сховати SMTP пароль",
 
 	// Error page
 	"error.notFound":       "Не знайдено",
