@@ -112,7 +112,6 @@ func main() {
 	r.Static("/static", "./static")
 	r.StaticFile("/favicon.ico", "./static/favicon.ico")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
-	r.StaticFile("/apple-touch-icon.png", "./static/apple-touch-icon.png")
 
 	// Public
 	r.GET("/login", authH.ShowLogin)
