@@ -1059,6 +1059,18 @@ a:hover .occ-item { background: var(--hover-bg); }
   padding: 32px;
 }
 
+.login-page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.login-page-controls .language-form {
+  margin: 0;
+}
+
 .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 
 .login-logo-icon {

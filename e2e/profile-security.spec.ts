@@ -488,7 +488,7 @@ test('15 - theme toggle persists the selected theme across navigation and reload
 
   await themeButton.click();
   await expect(html).toHaveAttribute('data-theme', 'light');
-  await expect(themeButton).toHaveAttribute('title', 'Switch to dark');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to dark theme');
 
   const storedThemeAfterToggle = await page.evaluate(() => localStorage.getItem('dr-theme'));
   expect(storedThemeAfterToggle).toBe('light');
@@ -498,7 +498,7 @@ test('15 - theme toggle persists the selected theme across navigation and reload
 
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'light');
-  await expect(themeButton).toHaveAttribute('title', 'Switch to dark');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to dark theme');
 
   const storedThemeAfterReload = await page.evaluate(() => localStorage.getItem('dr-theme'));
   expect(storedThemeAfterReload).toBe('light');

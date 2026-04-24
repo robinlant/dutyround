@@ -56,6 +56,9 @@ var en = map[string]string{
 	"nav.logout":      "Logout",
 	"nav.search":      "Search people & duties...",
 	"nav.toggleTheme": "Toggle theme",
+	"nav.switchLanguage": "Switch language",
+	"nav.switchToLight":  "Switch to light theme",
+	"nav.switchToDark":   "Switch to dark theme",
 	"nav.skipContent": "Skip to content",
 	"nav.toggleNav":   "Toggle navigation",
 
@@ -448,6 +451,9 @@ var de = map[string]string{
 	"nav.logout":      "Abmelden",
 	"nav.search":      "Personen & Eins\u00e4tze suchen...",
 	"nav.toggleTheme": "Design wechseln",
+	"nav.switchLanguage": "Sprache wechseln",
+	"nav.switchToLight":  "Zu hellem Design wechseln",
+	"nav.switchToDark":   "Zu dunklem Design wechseln",
 	"nav.skipContent": "Zum Inhalt springen",
 	"nav.toggleNav":   "Navigation umschalten",
 
@@ -840,6 +846,9 @@ var ua = map[string]string{
 	"nav.logout":      "Вийти",
 	"nav.search":      "Пошук людей та заходів...",
 	"nav.toggleTheme": "Змінити тему",
+	"nav.switchLanguage": "Змінити мову",
+	"nav.switchToLight":  "Перемкнути на світлу тему",
+	"nav.switchToDark":   "Перемкнути на темну тему",
 	"nav.skipContent": "Перейти до вмісту",
 	"nav.toggleNav":   "Переключити навігацію",
 

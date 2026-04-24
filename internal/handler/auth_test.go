@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
@@ -183,5 +184,58 @@ func TestShowLoginClearsStaleSessionInsteadOfRedirecting(t *testing.T) {
 	}
 	if got := w.Header().Get("Location"); got != "" {
 		t.Fatalf("GET /login with stale session: got Location %q, want empty", got)
+	}
+}
+
+func TestShowLoginIncludesPublicLanguageAndThemeControls(t *testing.T) {
+	repo := &authTestUserRepo{
+		usersByID:    map[int64]domain.User{},
+		usersByEmail: map[string]domain.User{},
+	}
+	r := newAuthTestRouter(repo)
+
+	w, _ := performAuthRequest(r, http.MethodGet, "/login", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("GET /login: got status %d, want %d", w.Code, http.StatusOK)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `class="login-page-controls"`) {
+		t.Fatalf("GET /login body missing login-page-controls")
+	}
+	if !strings.Contains(body, `class="language-select"`) {
+		t.Fatalf("GET /login body missing language select")
+	}
+	if !strings.Contains(body, `id="theme-btn"`) {
+		t.Fatalf("GET /login body missing theme button")
+	}
+}
+
+func TestShowLoginUsesLocalizedMetadataForUkrainian(t *testing.T) {
+	repo := &authTestUserRepo{
+		usersByID:    map[int64]domain.User{},
+		usersByEmail: map[string]domain.User{},
+	}
+	r := newAuthTestRouter(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	req.AddCookie(&http.Cookie{Name: "dr-lang", Value: "ua"})
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("GET /login with ua lang: got status %d, want %d", w.Code, http.StatusOK)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `<html lang="uk">`) {
+		t.Fatalf("GET /login body missing html lang uk: %s", body)
+	}
+	if !strings.Contains(body, `aria-label="Змінити мову"`) {
+		t.Fatalf("GET /login body missing localized language aria-label")
+	}
+	if !strings.Contains(body, `data-dark-label="Перемкнути на темну тему"`) {
+		t.Fatalf("GET /login body missing localized dark theme label")
 	}
 }

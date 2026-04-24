@@ -1,6 +1,6 @@
 {{define "base"}}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{htmlLang .Lang}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,6 +22,28 @@
 </head>
 <body>
 <a href="#main-content" class="skip-to-content">{{t .Lang "nav.skipContent"}}</a>
+<span id="icon-sun-src" hidden>{{template "icon-sun" .}}</span>
+<span id="icon-moon-src" hidden>{{template "icon-moon" .}}</span>
+<script>
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute('data-theme')||'dark';
+  var next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('dr-theme',next);
+  updateThemeBtn();
+}
+function updateThemeBtn(){
+  var btn=document.getElementById('theme-btn');
+  if(!btn)return;
+  var t=document.documentElement.getAttribute('data-theme')||'dark';
+  var src=document.getElementById(t==='dark'?'icon-sun-src':'icon-moon-src');
+  var nextLabel=btn.getAttribute(t==='dark'?'data-light-label':'data-dark-label')||btn.getAttribute('aria-label')||'';
+  if(src)btn.innerHTML=src.innerHTML;
+  btn.title=nextLabel;
+  btn.setAttribute('aria-label',nextLabel);
+}
+document.addEventListener('DOMContentLoaded',updateThemeBtn);
+</script>
 {{if .CurrentUser.ID}}
 <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle navigation">{{template "icon-menu" .}}</button>
 <div class="sidebar">
@@ -48,24 +70,7 @@
     </a>
   </div>
 </div>
-
 <script>
-function toggleTheme(){
-  var cur=document.documentElement.getAttribute('data-theme')||'dark';
-  var next=cur==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('dr-theme',next);
-  updateThemeBtn();
-}
-function updateThemeBtn(){
-  var btn=document.getElementById('theme-btn');
-  if(!btn)return;
-  var t=document.documentElement.getAttribute('data-theme')||'dark';
-  var src=document.getElementById(t==='dark'?'icon-sun-src':'icon-moon-src');
-  if(src)btn.innerHTML=src.innerHTML;
-  btn.title=t==='dark'?'Switch to light':'Switch to dark';
-}
-document.addEventListener('DOMContentLoaded',updateThemeBtn);
 document.addEventListener('click',function(e){
   var wrap=document.querySelector('.search-wrap');
   if(wrap && !wrap.contains(e.target)){
@@ -92,15 +97,13 @@ document.addEventListener('click',function(e){
       </div>
       <div class="topbar-sep"></div>
       <form method="GET" action="/lang" class="language-form">
-        <select name="lang" class="language-select" aria-label="Switch language" onchange="this.form.submit()">
+        <select name="lang" class="language-select" aria-label="{{t .Lang "nav.switchLanguage"}}" onchange="this.form.submit()">
           <option value="en"{{if eq .Lang "en"}} selected{{end}}>EN</option>
           <option value="de"{{if eq .Lang "de"}} selected{{end}}>DE</option>
           <option value="ua"{{if eq .Lang "ua"}} selected{{end}}>UA</option>
         </select>
       </form>
-      <span id="icon-sun-src" hidden>{{template "icon-sun" .}}</span>
-      <span id="icon-moon-src" hidden>{{template "icon-moon" .}}</span>
-      <button onclick="toggleTheme()" id="theme-btn" class="btn btn-ghost btn-sm" aria-label="Toggle theme" title="Toggle theme">{{template "icon-moon" .}}</button>
+      <button onclick="toggleTheme()" id="theme-btn" class="btn btn-ghost btn-sm" aria-label="{{t .Lang "nav.switchToLight"}}" title="{{t .Lang "nav.switchToLight"}}" data-light-label="{{t .Lang "nav.switchToLight"}}" data-dark-label="{{t .Lang "nav.switchToDark"}}">{{template "icon-moon" .}}</button>
       <a href="/profile" class="topbar-user">
         <div class="user-avatar">{{initial .CurrentUser.Name}}</div>
         <div class="topbar-user-info">

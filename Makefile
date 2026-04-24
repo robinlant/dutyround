@@ -47,6 +47,7 @@ help:
 	@printf '  %-26s %s\n' 'make e2e-profile' 'Run profile occurrence e2e spec'
 	@printf '  %-26s %s\n' 'make e2e-security' 'Run profile security e2e spec'
 	@printf '  %-26s %s\n' 'make e2e-bugs' 'Run profile bug-regression e2e spec'
+	@printf '  %-26s %s\n' 'make e2e-password-theme' 'Run login/password/theme e2e spec'
 	@printf '  %-26s %s\n' 'make e2e-install' 'Install Playwright test package and browsers'
 	@printf '  %-26s %s\n' 'make run' 'Run the web server locally'
 	@printf '  %-26s %s\n' 'make seed' 'Seed an initial admin account'
@@ -106,12 +107,12 @@ seed:
 image build-image docker-build:
 	docker build -t $(IMAGE):$(TAG) .
 
-.PHONY: e2e-install test-e2e e2e e2e-profile e2e-security e2e-bugs
+.PHONY: e2e-install test-e2e e2e e2e-profile e2e-security e2e-bugs e2e-password-theme
 e2e-install:
 	npm install --no-save --no-package-lock @playwright/test
 	$(PLAYWRIGHT_BIN) install
 
-test-e2e e2e: e2e-profile e2e-security e2e-bugs
+test-e2e e2e: e2e-profile e2e-security e2e-bugs e2e-password-theme
 
 e2e-profile: $(PLAYWRIGHT_BIN)
 	$(call run_e2e,e2e-profile,3991,admin@test.com,profile-occurrences.spec.ts)
@@ -121,6 +122,9 @@ e2e-security: $(PLAYWRIGHT_BIN)
 
 e2e-bugs: $(PLAYWRIGHT_BIN)
 	$(call run_e2e,e2e-bugs,3993,bugadmin@test.com,profile-bugs.spec.ts)
+
+e2e-password-theme: $(PLAYWRIGHT_BIN)
+	$(call run_e2e,e2e-password-theme,3994,secadmin@test.com,password-toggle-theme.spec.ts)
 
 $(PLAYWRIGHT_BIN):
 	npm install --no-save --no-package-lock @playwright/test

@@ -1,6 +1,16 @@
 {{define "content"}}
 <div class="login-wrap">
   <div class="login-box">
+    <div class="login-page-controls">
+      <form method="GET" action="/lang" class="language-form">
+        <select name="lang" class="language-select" aria-label="{{t .Lang "nav.switchLanguage"}}" onchange="this.form.submit()">
+          <option value="en"{{if eq .Lang "en"}} selected{{end}}>EN</option>
+          <option value="de"{{if eq .Lang "de"}} selected{{end}}>DE</option>
+          <option value="ua"{{if eq .Lang "ua"}} selected{{end}}>UA</option>
+        </select>
+      </form>
+      <button type="button" onclick="toggleTheme()" id="theme-btn" class="btn btn-ghost btn-sm" aria-label="{{t .Lang "nav.switchToLight"}}" title="{{t .Lang "nav.switchToLight"}}" data-light-label="{{t .Lang "nav.switchToLight"}}" data-dark-label="{{t .Lang "nav.switchToDark"}}">{{template "icon-moon" .}}</button>
+    </div>
     <div class="login-logo">
       <img src="/favicon.svg" alt="" class="login-logo-icon" width="48" height="48">
       <div class="login-title">DutyRound</div>

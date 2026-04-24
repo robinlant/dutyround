@@ -1,7 +1,5 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
-test.use({ baseURL: 'http://localhost:3992' });
-
 async function setEnglish(context: BrowserContext) {
   await context.addCookies([
     { name: 'dr-lang', value: 'en', domain: 'localhost', path: '/' },
@@ -32,6 +30,38 @@ test('login password toggle switches input type and visible text', async ({ page
 
   await expect(passwordInput).toHaveAttribute('type', 'text');
   await expect(toggleText).toHaveText('Hide');
+});
+
+test('login page exposes language and theme controls before authentication', async ({ page }) => {
+  await setEnglish(page.context());
+  await page.goto('/login');
+
+  const html = page.locator('html');
+  const themeButton = page.locator('#theme-btn');
+  const languageSelect = page.locator('select.language-select');
+  const submitButton = page.locator('form[action="/login"] button[type="submit"]');
+
+  await expect(themeButton).toBeVisible();
+  await expect(languageSelect).toBeVisible();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).toHaveAttribute('lang', 'en');
+  await expect(languageSelect).toHaveAttribute('aria-label', 'Switch language');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to light theme');
+  await expect(themeButton).toHaveAttribute('aria-label', 'Switch to light theme');
+
+  await themeButton.click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(themeButton).toHaveAttribute('title', 'Switch to dark theme');
+  await expect(themeButton).toHaveAttribute('aria-label', 'Switch to dark theme');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('dr-theme'))).toBe('light');
+
+  await languageSelect.selectOption('de');
+  await expect(languageSelect).toHaveValue('de');
+  await expect(html).toHaveAttribute('lang', 'de');
+  await expect(languageSelect).toHaveAttribute('aria-label', 'Sprache wechseln');
+  await expect(themeButton).toHaveAttribute('title', 'Zu dunklem Design wechseln');
+  await expect(themeButton).toHaveAttribute('aria-label', 'Zu dunklem Design wechseln');
+  await expect(submitButton).toHaveText('Anmelden');
 });
 
 test('profile current and new password toggles operate independently', async ({ page }) => {
