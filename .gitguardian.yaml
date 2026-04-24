@@ -1,6 +1,0 @@
-version: 2
-
-secret:
-  ignored_paths:
-    - 'e2e/**/*.spec.ts'
-    - 'internal/i18n/i18n.go'
