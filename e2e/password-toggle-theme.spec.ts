@@ -65,7 +65,7 @@ test('login page exposes language and theme controls before authentication', asy
 });
 
 test('profile current and new password toggles operate independently', async ({ page }) => {
-  await login(page, 'secadmin@test.com', 'password123');
+  await login(page, 'admin@test.com', 'password123');
   await page.goto('/profile');
 
   const currentPassword = page.locator('#profile-current-password');
@@ -92,7 +92,7 @@ test('profile current and new password toggles operate independently', async ({ 
 test('password toggle still works in light theme and standard select remains interactable', async ({
   page,
 }) => {
-  await login(page, 'secadmin@test.com', 'password123');
+  await login(page, 'admin@test.com', 'password123');
   await page.goto('/profile');
 
   const html = page.locator('html');

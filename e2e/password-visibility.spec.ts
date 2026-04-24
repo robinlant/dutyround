@@ -1,7 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 
-test.use({ baseURL: 'http://localhost:3994' });
-
 async function setEnglish(context: BrowserContext) {
   await context.addCookies([
     { name: 'dr-lang', value: 'en', domain: 'localhost', path: '/' },
@@ -45,7 +43,7 @@ test.describe('Password visibility toggles', () => {
   });
 
   test('profile password toggles operate independently after login', async ({ page }) => {
-    await login(page, 'toggleadmin@test.com', 'password123');
+    await login(page, 'admin@test.com', 'password123');
     await page.goto('/profile');
 
     const currentPassword = page.locator('#profile-current-password');
@@ -94,7 +92,7 @@ test.describe('Password visibility toggles', () => {
   test('light theme keeps toggle and custom select controls usable in the user form', async ({
     page,
   }) => {
-    await login(page, 'toggleadmin@test.com', 'password123');
+    await login(page, 'admin@test.com', 'password123');
     await page.goto('/profile');
 
     const html = page.locator('html');
