@@ -1,8 +1,18 @@
 {{define "content"}}
 <div class="login-wrap">
   <div class="login-box">
+    <div class="login-page-controls">
+      <form method="GET" action="/lang" class="language-form">
+        <select name="lang" class="language-select" aria-label="{{t .Lang "nav.switchLanguage"}}" onchange="this.form.submit()">
+          <option value="en"{{if eq .Lang "en"}} selected{{end}}>EN</option>
+          <option value="de"{{if eq .Lang "de"}} selected{{end}}>DE</option>
+          <option value="ua"{{if eq .Lang "ua"}} selected{{end}}>UA</option>
+        </select>
+      </form>
+      <button type="button" onclick="toggleTheme()" id="theme-btn" class="btn btn-ghost btn-sm" aria-label="{{t .Lang "nav.switchToLight"}}" title="{{t .Lang "nav.switchToLight"}}" data-light-label="{{t .Lang "nav.switchToLight"}}" data-dark-label="{{t .Lang "nav.switchToDark"}}">{{template "icon-moon" .}}</button>
+    </div>
     <div class="login-logo">
-      <div class="login-logo-icon">{{template "icon-zap" .}}</div>
+      <img src="/favicon.svg" alt="" class="login-logo-icon" width="48" height="48">
       <div class="login-title">DutyRound</div>
     </div>
 
@@ -17,7 +27,14 @@
       </div>
       <div class="form-group">
         <label for="login-password">{{t .Lang "login.password"}}</label>
-        <input type="password" name="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+        <div class="password-field">
+          <input type="password" name="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t .Lang "password.show"}}" data-hide-text="{{t .Lang "password.hide"}}" data-show-label="{{t .Lang "password.showPassword"}}" data-hide-label="{{t .Lang "password.hidePassword"}}" aria-controls="login-password" aria-label="{{t .Lang "password.showPassword"}}" aria-pressed="false" title="{{t .Lang "password.showPassword"}}">
+            <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+            <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+            <span data-password-toggle-text>{{t .Lang "password.show"}}</span>
+          </button>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="margin-top:4px">{{t .Lang "login.signIn"}}</button>
     </form>

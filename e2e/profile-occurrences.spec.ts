@@ -63,6 +63,34 @@ async function signUpForDuty(page: Page, occId: number): Promise<void> {
   expect([200, 302]).toContain(res.status());
 }
 
+function uniqueSuffix(): string {
+  return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+async function createParticipantUser(page: Page, name: string, email: string): Promise<number> {
+  const csrfUsers = await getCSRF(page, '/users');
+  const res = await page.request.post('/users', {
+    form: {
+      name,
+      email,
+      password: 'password123',
+      role: 'participant',
+      _csrf: csrfUsers,
+    },
+    maxRedirects: 0,
+  });
+  expect([302]).toContain(res.status());
+
+  await page.goto('/users');
+  const userItem = page.locator(`.user-list-item[data-email="${email}"]`).first();
+  await expect(userItem).toBeVisible();
+  const profileHref = await userItem.locator('.occ-title a[href^="/profile/"]').first().getAttribute('href');
+  if (!profileHref) throw new Error(`Could not find profile link for ${email}`);
+  const id = parseInt(profileHref.split('/').pop()!, 10);
+  if (Number.isNaN(id)) throw new Error(`Could not parse user id from ${profileHref}`);
+  return id;
+}
+
 test.describe('Profile duties', () => {
   test('shows "Your duties" section on profile page', async ({ page }) => {
     await login(page);
@@ -204,38 +232,32 @@ test.describe('Profile duties', () => {
     await login(page);
 
     // Create a participant user via admin panel
-    const csrfUsers = await getCSRF(page, '/users');
-    await page.request.post('/users', {
-      form: {
-        name: 'PublicUser',
-        email: 'publicuser@test.com',
-        password: 'password123',
-        role: 'participant',
-        _csrf: csrfUsers,
-      },
-    });
+    const suffix = uniqueSuffix();
+    const publicUserName = `PublicUser-${suffix}`;
+    const publicUserEmail = `publicuser-${suffix}@test.com`;
+    const publicUserID = await createParticipantUser(page, publicUserName, publicUserEmail);
 
     // Create a duty and assign the new user to it
     const occId = await createDuty(page, {
-      title: 'Public Profile Duty',
+      title: `Public Profile Duty ${suffix}`,
       date: '2027-10-01T11:00',
     });
 
-    // Assign user 2 (PublicUser) to this duty
+    // Assign the created user to this duty.
     const csrfAssign = await getCSRF(page, `/duties/${occId}`);
     await page.request.post(`/duties/${occId}/assign`, {
-      form: { user_id: '2', _csrf: csrfAssign },
+      form: { user_id: String(publicUserID), _csrf: csrfAssign },
     });
 
-    // Visit the public profile of user 2
-    await page.goto('/profile/2');
+    // Visit the public profile of the created user.
+    await page.goto(`/profile/${publicUserID}`);
 
     // Should show the duties section (public profile says "Duties", not "Your duties")
     const heading = page.locator('.card-title', { hasText: 'Duties' });
     await expect(heading).toBeVisible();
 
     // Should show the assigned duty
-    await expect(page.locator('.occ-item', { hasText: 'Public Profile Duty' })).toBeVisible();
+    await expect(page.locator('.occ-item', { hasText: `Public Profile Duty ${suffix}` })).toBeVisible();
 
     await ctx.close();
   });
@@ -245,21 +267,14 @@ test.describe('Profile duties', () => {
     const page = await ctx.newPage();
     await login(page);
 
-    // Create a participant user
-    const csrfUsers = await getCSRF(page, '/users');
-    await page.request.post('/users', {
-      form: {
-        name: 'ClickableUser',
-        email: 'clickable@test.com',
-        password: 'password123',
-        role: 'participant',
-        _csrf: csrfUsers,
-      },
-    });
+    const suffix = uniqueSuffix();
+    const clickableUserName = `ClickableUser-${suffix}`;
+    const clickableUserEmail = `clickable-${suffix}@test.com`;
+    const clickableUserID = await createParticipantUser(page, clickableUserName, clickableUserEmail);
 
     // Create a duty and assign both users
     const occId = await createDuty(page, {
-      title: 'Clickable Test',
+      title: `Clickable Test ${suffix}`,
       date: '2027-11-20T10:00',
     });
     await signUpForDuty(page, occId);
@@ -267,20 +282,20 @@ test.describe('Profile duties', () => {
     // Assign the new user too
     const csrfAssign = await getCSRF(page, `/duties/${occId}`);
     await page.request.post(`/duties/${occId}/assign`, {
-      form: { user_id: '3', _csrf: csrfAssign },
+      form: { user_id: String(clickableUserID), _csrf: csrfAssign },
     });
 
     // Go to duty detail
     await page.goto(`/duties/${occId}`);
 
     // The participant name should be a link to their profile
-    const participantLink = page.locator('#participant-section a[href="/profile/3"]');
+    const participantLink = page.locator(`#participant-section a[href="/profile/${clickableUserID}"]`);
     await expect(participantLink).toBeVisible();
-    await expect(participantLink).toContainText('ClickableUser');
+    await expect(participantLink).toContainText(clickableUserName);
 
     // Click it and verify navigation to profile
     await participantLink.click();
-    await expect(page).toHaveURL(/\/profile\/3/);
+    await expect(page).toHaveURL(new RegExp(`/profile/${clickableUserID}$`));
 
     await ctx.close();
   });

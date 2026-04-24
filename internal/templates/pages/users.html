@@ -28,9 +28,17 @@
           <input type="email" name="email" placeholder="{{t $.Lang "users.setNewEmail"}}" required style="flex:1" autocomplete="off">
           <button type="submit" class="btn btn-ghost btn-sm">{{t $.Lang "users.set"}}</button>
         </form>
-        <form method="POST" action="/users/{{.ID}}/set-password" class="row" style="margin-bottom:12px">
+        <form method="POST" action="/users/{{.ID}}/set-password" class="row password-form-row" style="margin-bottom:12px">
           <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
-          <input type="password" name="password" placeholder="{{t $.Lang "users.setNewPassword"}}" required minlength="8" style="flex:1" autocomplete="new-password">
+          <div class="password-field" style="flex:1">
+            <label for="set-password-{{.ID}}" class="sr-only">{{t $.Lang "users.setNewPassword"}}</label>
+            <input type="password" name="password" id="set-password-{{.ID}}" placeholder="{{t $.Lang "users.setNewPassword"}}" required minlength="8" autocomplete="new-password">
+            <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t $.Lang "password.show"}}" data-hide-text="{{t $.Lang "password.hide"}}" data-show-label="{{t $.Lang "password.showNew"}}" data-hide-label="{{t $.Lang "password.hideNew"}}" aria-controls="set-password-{{.ID}}" aria-label="{{t $.Lang "password.showNew"}}" aria-pressed="false" title="{{t $.Lang "password.showNew"}}">
+              <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+              <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+              <span data-password-toggle-text>{{t $.Lang "password.show"}}</span>
+            </button>
+          </div>
           <button type="submit" class="btn btn-ghost btn-sm">{{t $.Lang "users.set"}}</button>
         </form>
       </div>
@@ -52,7 +60,14 @@
       </div>
       <div class="form-group">
         <label for="create-password">{{t .Lang "users.password"}}</label>
-        <input type="password" name="password" id="create-password" required placeholder="{{t .Lang "users.minPassword"}}" minlength="8" autocomplete="new-password">
+        <div class="password-field">
+          <input type="password" name="password" id="create-password" required placeholder="{{t .Lang "users.minPassword"}}" minlength="8" autocomplete="new-password">
+          <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t .Lang "password.show"}}" data-hide-text="{{t .Lang "password.hide"}}" data-show-label="{{t .Lang "password.showNew"}}" data-hide-label="{{t .Lang "password.hideNew"}}" aria-controls="create-password" aria-label="{{t .Lang "password.showNew"}}" aria-pressed="false" title="{{t .Lang "password.showNew"}}">
+            <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+            <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+            <span data-password-toggle-text>{{t .Lang "password.show"}}</span>
+          </button>
+        </div>
       </div>
       <div class="form-group">
         <label for="role-search">{{t .Lang "users.role"}}</label>

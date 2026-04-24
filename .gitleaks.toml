@@ -1,0 +1,11 @@
+title = "DutyRound Gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore test fixtures and translation strings that intentionally contain password-like literals."
+paths = [
+  '''^e2e/.*\.spec\.ts$''',
+  '''^internal/i18n/i18n\.go$''',
+]

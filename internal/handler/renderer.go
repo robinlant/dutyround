@@ -92,6 +92,16 @@ var funcMap = template.FuncMap{
 	"t": func(lang, key string) string {
 		return i18n.T(lang, key)
 	},
+	"htmlLang": func(lang string) string {
+		switch lang {
+		case "ua":
+			return "uk"
+		case "de", "en":
+			return lang
+		default:
+			return "en"
+		}
+	},
 	"monthNameT": func(lang string, t time.Time) string {
 		if lang == "de" {
 			months := [...]string{

@@ -35,7 +35,14 @@
 
       <div class="form-group">
         <label for="smtp-password">{{t .Lang "settings.smtpPassword"}}</label>
-        <input type="password" name="smtp_password" id="smtp-password" value="{{index .Settings "smtp_password"}}" placeholder="Enter SMTP password">
+        <div class="password-field">
+          <input type="password" name="smtp_password" id="smtp-password" value="{{index .Settings "smtp_password"}}" placeholder="Enter SMTP password" autocomplete="off" spellcheck="false">
+          <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t .Lang "password.show"}}" data-hide-text="{{t .Lang "password.hide"}}" data-show-label="{{t .Lang "password.showSMTP"}}" data-hide-label="{{t .Lang "password.hideSMTP"}}" aria-controls="smtp-password" aria-label="{{t .Lang "password.showSMTP"}}" aria-pressed="false" title="{{t .Lang "password.showSMTP"}}">
+            <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+            <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+            <span data-password-toggle-text>{{t .Lang "password.show"}}</span>
+          </button>
+        </div>
       </div>
 
       <hr class="divider">
