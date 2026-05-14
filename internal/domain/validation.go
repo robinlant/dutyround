@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"net/mail"
+	"strings"
 )
 
 var (
@@ -47,6 +48,10 @@ func ValidateEmail(email string) error {
 		return ErrInvalidEmail
 	}
 	return nil
+}
+
+func NormalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
 func ValidateEditScope(scope string) error {

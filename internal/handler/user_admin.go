@@ -56,6 +56,8 @@ func (h *UserAdminHandler) Create(c *gin.Context) {
 			msg = i18n.T(lang, "flash.passwordTooShort")
 		} else if errors.Is(err, service.ErrInvalidRole) {
 			msg = i18n.T(lang, "flash.invalidRole")
+		} else if errors.Is(err, service.ErrEmailTaken) {
+			msg = i18n.T(lang, "flash.emailAlreadyInUse")
 		} else {
 			msg = i18n.T(lang, "flash.failedCreateUser")
 		}

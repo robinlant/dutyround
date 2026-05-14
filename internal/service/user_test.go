@@ -309,6 +309,79 @@ func TestCreateUser_ValidName(t *testing.T) {
 	}
 }
 
+func TestCreateUser_NormalizesEmail(t *testing.T) {
+	db := setupTestDB(t)
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	u, err := svc.CreateUser(context.Background(), "Alice", "  ALICE@Test.COM  ", "password1234", domain.RoleParticipant)
+	if err != nil {
+		t.Fatalf("create user should succeed: %v", err)
+	}
+	if u.Email != "alice@test.com" {
+		t.Fatalf("expected normalized email alice@test.com, got %q", u.Email)
+	}
+}
+
+func TestCreateUser_RejectsCaseInsensitiveDuplicateEmail(t *testing.T) {
+	db := setupTestDB(t)
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	createUser(t, svc, "Alice", "Alice@Test.COM")
+	_, err := svc.CreateUser(context.Background(), "Bob", "alice@test.com", "password1234", domain.RoleParticipant)
+	if !errors.Is(err, service.ErrEmailTaken) {
+		t.Fatalf("expected ErrEmailTaken, got %v", err)
+	}
+}
+
+func TestSetEmail_NormalizesEmail(t *testing.T) {
+	db := setupTestDB(t)
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	u := createUser(t, svc, "Alice", "alice@test.com")
+	if err := svc.SetEmail(context.Background(), u.ID, "  ALICE.NEW@Test.COM  "); err != nil {
+		t.Fatalf("set email should succeed: %v", err)
+	}
+
+	found, err := svc.GetUser(context.Background(), u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.Email != "alice.new@test.com" {
+		t.Fatalf("expected normalized email alice.new@test.com, got %q", found.Email)
+	}
+}
+
+func TestSetEmail_RejectsCaseInsensitiveDuplicateEmail(t *testing.T) {
+	db := setupTestDB(t)
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	alice := createUser(t, svc, "Alice", "alice@test.com")
+	bob := createUser(t, svc, "Bob", "bob@test.com")
+	if err := svc.SetEmail(context.Background(), bob.ID, "ALICE@Test.COM"); !errors.Is(err, service.ErrEmailTaken) {
+		t.Fatalf("expected ErrEmailTaken, got %v", err)
+	}
+
+	found, err := svc.GetUser(context.Background(), alice.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.Email != "alice@test.com" {
+		t.Fatalf("expected alice email unchanged, got %q", found.Email)
+	}
+}
+
 // --- Bug #10: DeleteUser for non-existent user ---
 
 func TestDeleteUser_NonExistent(t *testing.T) {
