@@ -80,6 +80,21 @@ func TestUserFindByEmail_Existing(t *testing.T) {
 	}
 }
 
+func TestUserFindByEmail_CaseInsensitive(t *testing.T) {
+	db := openTestDB(t)
+	repo := sqlite.NewUserRepository(db)
+
+	mustInsertUser(t, repo, "carol", "carol@example.com", domain.RoleParticipant)
+
+	found, err := repo.FindByEmail(context.Background(), "CAROL@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.Name != "carol" {
+		t.Errorf("expected name carol, got %q", found.Name)
+	}
+}
+
 func TestUserFindByEmail_NotFound(t *testing.T) {
 	db := openTestDB(t)
 	repo := sqlite.NewUserRepository(db)

@@ -29,7 +29,7 @@ func (r *UserRepository) FindByName(ctx context.Context, name string) (domain.Us
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT id, name, email, role, password_hash FROM users WHERE email = ?`, email)
+		`SELECT id, name, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE`, email)
 	return scanUser(row)
 }
 

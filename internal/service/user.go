@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -56,6 +57,12 @@ func (s *UserService) CreateUser(ctx context.Context, name, email, password stri
 		return domain.User{}, ErrPasswordTooShort
 	}
 	if err := ValidateRole(role); err != nil {
+		return domain.User{}, err
+	}
+	email = domain.NormalizeEmail(email)
+	if _, err := s.users.FindByEmail(ctx, email); err == nil {
+		return domain.User{}, ErrEmailTaken
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -160,9 +167,13 @@ func (s *UserService) ListUsers(ctx context.Context) ([]domain.User, error) {
 }
 
 func (s *UserService) SetEmail(ctx context.Context, userID int64, email string) error {
+	email = domain.NormalizeEmail(email)
 	existing, err := s.users.FindByEmail(ctx, email)
 	if err == nil && existing.ID != userID {
 		return ErrEmailTaken
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
 	}
 	user, err := s.users.FindByID(ctx, userID)
 	if err != nil {
