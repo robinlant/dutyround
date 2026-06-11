@@ -26,6 +26,9 @@
   {{end}}
 
   {{if or (eq .CurrentUser.Role "participant") (eq .CurrentUser.Role "organizer") (eq .CurrentUser.Role "admin")}}
+    {{if not .CanParticipate}}
+      <span class="badge badge-gray" style="font-size:12px">{{if .IsSignedUp}}{{t .Lang "occ.pastWithdrawalClosed"}}{{else}}{{t .Lang "occ.pastParticipationClosed"}}{{end}}</span>
+    {{else}}
     {{if .IsSignedUp}}
       <button class="btn btn-ghost"
         hx-post="/duties/{{.Occurrence.ID}}/withdraw"
@@ -48,6 +51,7 @@
           hx-target="#participant-section"
           hx-swap="outerHTML">{{t .Lang "occ.signup"}}</button>
       {{end}}
+    {{end}}
     {{end}}
   {{end}}
 </div>

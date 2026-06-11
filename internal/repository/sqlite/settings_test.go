@@ -80,6 +80,15 @@ func TestSettingsGetAll_IncludesMigrationDefaults(t *testing.T) {
 	if _, ok := m["email_enabled"]; !ok {
 		t.Error("expected email_enabled key from migration defaults")
 	}
+	for _, key := range []string{
+		"allow_past_participation",
+		"allow_participant_description_edit",
+		"description_edit_requires_participant",
+	} {
+		if _, ok := m[key]; !ok {
+			t.Errorf("expected %s key from migration defaults", key)
+		}
+	}
 }
 
 func TestSettingsGetAll_IncludesCustomEntries(t *testing.T) {

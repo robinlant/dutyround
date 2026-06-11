@@ -1,119 +1,155 @@
+{{define "settings_help"}}
+  {{if .Help}}<button type="button" class="settings-help" aria-label="{{.Help}}" data-tooltip="{{.Help}}">?</button>{{end}}
+{{end}}
+
+{{define "settings_toggle"}}
+<div class="setting-row{{if .Nested}} setting-row-nested{{end}}"{{if .RowID}} id="{{.RowID}}"{{end}}>
+  <div class="setting-copy">
+    <div class="setting-title">
+      {{.Label}}
+      {{template "settings_help" .}}
+    </div>
+  </div>
+  <label class="switch-control" aria-label="{{.Label}}">
+    <input type="checkbox" name="{{.Name}}" id="{{.ID}}" {{if .Checked}}checked{{end}}>
+    <span class="switch-track"></span>
+  </label>
+</div>
+{{end}}
+
+{{define "settings_input"}}
+<div class="setting-row setting-input-row{{if .Wide}} settings-field-wide{{end}}">
+  <div class="setting-copy">
+    <label class="setting-title" for="{{.ID}}">{{.Label}}</label>
+  </div>
+  {{if .PasswordToggle}}
+    <div class="password-field">
+      <input type="{{.Type}}" name="{{.Name}}" id="{{.ID}}" value="{{.Value}}" placeholder="{{.Placeholder}}" autocomplete="off" spellcheck="false">
+      <button type="button" class="password-toggle" data-password-toggle data-show-text="{{.PasswordShowText}}" data-hide-text="{{.PasswordHideText}}" data-show-label="{{.PasswordShowLabel}}" data-hide-label="{{.PasswordHideLabel}}" aria-controls="{{.ID}}" aria-label="{{.PasswordShowLabel}}" aria-pressed="false" title="{{.PasswordShowLabel}}">
+        <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+        <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+        <span data-password-toggle-text>{{.PasswordShowText}}</span>
+      </button>
+    </div>
+  {{else}}
+    <input type="{{.Type}}" name="{{.Name}}" id="{{.ID}}" value="{{.Value}}" placeholder="{{.Placeholder}}" {{if .Min}}min="{{.Min}}"{{end}} {{if .Max}}max="{{.Max}}"{{end}}>
+  {{end}}
+</div>
+{{end}}
+
+{{define "settings_section"}}
+  <div class="settings-form-section{{if not .Title}} settings-form-section-first{{end}}">
+    {{if .Title}}<div class="card-title">{{.Title}}</div>{{end}}
+    {{if eq .Kind "fields"}}
+      <div class="settings-field-grid">
+        {{range .Items}}{{template "settings_input" .}}{{end}}
+      </div>
+    {{else}}
+      {{range .Items}}{{template "settings_toggle" .}}{{end}}
+    {{end}}
+  </div>
+{{end}}
+
+{{define "settings_group"}}
+<section class="settings-card" id="{{.ID}}">
+  <div class="settings-section-head">
+    <div>
+      <div class="card-title">{{.Eyebrow}}</div>
+      <h2 class="settings-section-title">{{.Title}}</h2>
+    </div>
+  </div>
+  {{range .Sections}}{{template "settings_section" .}}{{end}}
+</section>
+{{end}}
+
 {{define "content"}}
-<div class="grid-2">
-  <div class="card">
-    <div class="card-title">{{t .Lang "settings.emailConfig"}}</div>
-    <form method="POST" action="/settings" class="stack">
+<div class="settings-page-grid">
+  <form method="POST" action="/settings" id="settings-save-form" class="settings-save-form settings-scroll">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    {{range .SettingsPage.Groups}}{{template "settings_group" .}}{{end}}
+  </form>
+
+  <aside class="settings-side">
+    <nav class="settings-nav" aria-label="{{t .Lang "title.settings"}}">
+      {{range .SettingsPage.Groups}}
+        <a class="settings-nav-link" href="#{{.ID}}" data-settings-nav-link>{{.NavLabel}}</a>
+      {{end}}
+    </nav>
+
+    <div class="settings-save-card">
+      <div class="card-title">{{t .Lang "settings.savePanel"}}</div>
+      <button type="submit" form="settings-save-form" class="btn btn-primary settings-save-btn">{{t .Lang "settings.saveSettings"}}</button>
+    </div>
+
+    <form method="POST" action="/settings/test-email" class="settings-save-card">
       <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-
-      <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" name="email_enabled" {{if eq (index .Settings "email_enabled") "true"}}checked{{end}}
-                 style="width:auto;accent-color:var(--accent);">
-          <span style="font-size:13px;font-weight:500;color:var(--text);">{{t .Lang "settings.enableNotifications"}}</span>
-        </label>
-      </div>
-
-      <hr class="divider">
-
-      <div class="card-title" style="margin-bottom:0;">{{t .Lang "settings.smtpServer"}}</div>
-
-      <div class="row" style="gap:12px;">
-        <div class="form-group" style="flex:3;">
-          <label for="smtp-host">{{t .Lang "settings.smtpHost"}}</label>
-          <input type="text" name="smtp_host" id="smtp-host" value="{{index .Settings "smtp_host"}}" placeholder="smtp.example.com">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label for="smtp-port">{{t .Lang "settings.port"}}</label>
-          <input type="number" name="smtp_port" id="smtp-port" value="{{index .Settings "smtp_port"}}" placeholder="587">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-username">{{t .Lang "settings.smtpUsername"}}</label>
-        <input type="text" name="smtp_username" id="smtp-username" value="{{index .Settings "smtp_username"}}" placeholder="user@example.com">
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-password">{{t .Lang "settings.smtpPassword"}}</label>
-        <div class="password-field">
-          <input type="password" name="smtp_password" id="smtp-password" value="{{index .Settings "smtp_password"}}" placeholder="Enter SMTP password" autocomplete="off" spellcheck="false">
-          <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t .Lang "password.show"}}" data-hide-text="{{t .Lang "password.hide"}}" data-show-label="{{t .Lang "password.showSMTP"}}" data-hide-label="{{t .Lang "password.hideSMTP"}}" aria-controls="smtp-password" aria-label="{{t .Lang "password.showSMTP"}}" aria-pressed="false" title="{{t .Lang "password.showSMTP"}}">
-            <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
-            <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
-            <span data-password-toggle-text>{{t .Lang "password.show"}}</span>
-          </button>
-        </div>
-      </div>
-
-      <hr class="divider">
-
-      <div class="card-title" style="margin-bottom:0;">{{t .Lang "settings.sender"}}</div>
-
-      <div class="row" style="gap:12px;">
-        <div class="form-group" style="flex:1;">
-          <label for="sender-name">{{t .Lang "settings.senderName"}}</label>
-          <input type="text" name="sender_name" id="sender-name" value="{{index .Settings "sender_name"}}" placeholder="DutyRound">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label for="sender-email">{{t .Lang "settings.senderEmail"}}</label>
-          <input type="email" name="sender_email" id="sender-email" value="{{index .Settings "sender_email"}}" placeholder="noreply@example.com">
-        </div>
-      </div>
-
-      <hr class="divider">
-
-      <div class="card-title" style="margin-bottom:0;">{{t .Lang "settings.notificationLimits"}}</div>
-
-      <div class="row" style="gap:12px;">
-        <div class="form-group" style="flex:1;">
-          <label for="max-emails">{{t .Lang "settings.maxEmails"}}</label>
-          <input type="number" name="max_emails_per_day" id="max-emails" value="{{index .Settings "max_emails_per_day"}}" min="1" max="10" placeholder="1">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label for="reminder-days">{{t .Lang "settings.reminderDays"}}</label>
-          <input type="number" name="upcoming_reminder_days" id="reminder-days" value="{{index .Settings "upcoming_reminder_days"}}" min="1" max="30" placeholder="3">
-        </div>
-      </div>
-
-      <div class="row" style="gap:8px;margin-top:4px;">
-        <button type="submit" class="btn btn-primary">{{t .Lang "settings.saveSettings"}}</button>
+      <div class="card-title">{{t .Lang "settings.testEmail"}}</div>
+      <div class="settings-card-row">
+        <span class="setting-title">
+          {{t .Lang "settings.sendTestEmail"}}
+          <button type="button" class="settings-help" aria-label="{{t .Lang "settings.testEmailDesc"}}" data-tooltip="{{t .Lang "settings.testEmailDesc"}}">?</button>
+        </span>
+        <button type="submit" class="btn btn-ghost">{{t .Lang "settings.sendTestEmail"}}</button>
       </div>
     </form>
-  </div>
-
-  <div class="stack" style="gap:20px;">
-    <div class="card">
-      <div class="card-title">{{t .Lang "settings.testEmail"}}</div>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
-        {{t .Lang "settings.testEmailDesc"}}
-      </p>
-      <form method="POST" action="/settings/test-email">
-        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-        <button type="submit" class="btn btn-ghost">{{t .Lang "settings.sendTestEmail"}}</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <div class="card-title">{{t .Lang "settings.howItWorks"}}</div>
-      <div class="stack-sm" style="font-size:13px;color:var(--text-muted);">
-        <p>{{t .Lang "settings.howItWorksDesc"}}</p>
-        <div style="border-left:2px solid var(--accent);padding-left:12px;margin:4px 0;">
-          <strong style="color:var(--text);font-size:12px;">{{t .Lang "settings.newOccurrence"}}</strong>
-          <p style="margin-top:2px;">{{t .Lang "settings.newOccurrenceDesc"}}</p>
-        </div>
-        <div style="border-left:2px solid var(--danger);padding-left:12px;margin:4px 0;">
-          <strong style="color:var(--text);font-size:12px;">{{t .Lang "settings.unfilledParticipants"}}</strong>
-          <p style="margin-top:2px;">{{t .Lang "settings.unfilledPartDesc"}}</p>
-        </div>
-        <div style="border-left:2px solid var(--warning);padding-left:12px;margin:4px 0;">
-          <strong style="color:var(--text);font-size:12px;">{{t .Lang "settings.unfilledOrganizers"}}</strong>
-          <p style="margin-top:2px;">{{t .Lang "settings.unfilledOrgDesc"}}</p>
-        </div>
-        <p style="margin-top:8px;">
-          <strong style="color:var(--text);">{{t .Lang "settings.note"}}</strong> {{t .Lang "settings.noteDesc"}}
-        </p>
-      </div>
-    </div>
-  </div>
+  </aside>
 </div>
+
+<script>
+(function() {
+  var allow = document.getElementById('allow-participant-description-edit');
+  var row = document.getElementById('description-edit-requires-participant-row');
+  function setActiveNav(activeLink) {
+    links.forEach(function(link) {
+      var active = link === activeLink;
+      link.classList.toggle('is-active', active);
+      if (active) {
+        link.setAttribute('aria-current', 'true');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  if (allow && row) {
+    function syncDescriptionDependency() {
+      row.classList.toggle('is-muted', !allow.checked);
+    }
+    allow.addEventListener('change', syncDescriptionDependency);
+    syncDescriptionDependency();
+  }
+
+  var scrollArea = document.querySelector('.settings-scroll');
+  var links = Array.prototype.slice.call(document.querySelectorAll('[data-settings-nav-link]'));
+  if (links[0]) setActiveNav(links[0]);
+  if (!scrollArea || links.length === 0) return;
+  links.forEach(function(link) {
+    var target = document.querySelector(link.getAttribute('href'));
+    link.addEventListener('click', function(event) {
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({block: 'start', behavior: 'smooth'});
+      setActiveNav(link);
+    });
+  });
+  if (scrollArea.scrollHeight <= scrollArea.clientHeight + 1) return;
+  if (!('IntersectionObserver' in window)) return;
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      var activeLink = links.find(function(link) {
+        return link.getAttribute('href') === '#' + entry.target.id;
+      });
+      if (activeLink) setActiveNav(activeLink);
+    });
+  }, {
+    root: scrollArea,
+    threshold: 0.35
+  });
+  links.forEach(function(link) {
+    var target = document.querySelector(link.getAttribute('href'));
+    if (target) observer.observe(target);
+  });
+})();
+</script>
 {{end}}

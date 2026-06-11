@@ -36,6 +36,7 @@ type OccurrenceRepository interface {
 	FindInRange(ctx context.Context, from, to time.Time, groupID int64) ([]domain.Occurrence, error)
 	FindByRecurrenceID(ctx context.Context, recurrenceID string) ([]domain.Occurrence, error)
 	Save(ctx context.Context, occurrence domain.Occurrence) (domain.Occurrence, error)
+	UpdateDescription(ctx context.Context, id int64, description string) error
 	Delete(ctx context.Context, id int64) error
 	DeleteByRecurrenceID(ctx context.Context, recurrenceID string) (int64, error)
 	DeleteByRecurrenceIDFromDate(ctx context.Context, recurrenceID string, fromDate time.Time) (int64, error)

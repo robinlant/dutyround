@@ -333,6 +333,44 @@ func TestSave_UpdateWithEmptyRecurrenceIDOverwrites(t *testing.T) {
 	}
 }
 
+func TestUpdateDescription_OnlyChangesDescription(t *testing.T) {
+	db := openTestDB(t)
+	occRepo := sqlite.NewOccurrenceRepository(db)
+
+	original, err := occRepo.Save(context.Background(), domain.Occurrence{
+		Title:           "Original Title",
+		Description:     "original desc",
+		Date:            time.Date(2026, 4, 1, 8, 0, 0, 0, time.UTC),
+		MinParticipants: 2,
+		MaxParticipants: 5,
+		AllowOverLimit:  true,
+		RecurrenceID:    "rec-description-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := occRepo.UpdateDescription(context.Background(), original.ID, "updated desc"); err != nil {
+		t.Fatal(err)
+	}
+
+	found, err := occRepo.FindByID(context.Background(), original.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.Description != "updated desc" {
+		t.Fatalf("Description: want %q, got %q", "updated desc", found.Description)
+	}
+	if found.Title != original.Title ||
+		!found.Date.Equal(original.Date) ||
+		found.MinParticipants != original.MinParticipants ||
+		found.MaxParticipants != original.MaxParticipants ||
+		found.AllowOverLimit != original.AllowOverLimit ||
+		found.RecurrenceID != original.RecurrenceID {
+		t.Fatalf("non-description fields changed: got %+v, want %+v", found, original)
+	}
+}
+
 func TestSave_UpdateNonRecurringStaysNonRecurring(t *testing.T) {
 	db := openTestDB(t)
 	occRepo := sqlite.NewOccurrenceRepository(db)

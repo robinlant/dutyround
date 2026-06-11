@@ -155,6 +155,11 @@ func (r *OccurrenceRepository) Save(ctx context.Context, o domain.Occurrence) (d
 	return o, err
 }
 
+func (r *OccurrenceRepository) UpdateDescription(ctx context.Context, id int64, description string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE occurrences SET description = ? WHERE id = ?`, description, id)
+	return err
+}
+
 func (r *OccurrenceRepository) FindByRecurrenceID(ctx context.Context, recurrenceID string) ([]domain.Occurrence, error) {
 	if recurrenceID == "" {
 		return []domain.Occurrence{}, nil

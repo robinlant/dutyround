@@ -20,6 +20,12 @@ type EmailConfig struct {
 	UpcomingReminderDays int
 }
 
+type AppConfig struct {
+	AllowPastParticipation             bool
+	AllowParticipantDescriptionEdit    bool
+	DescriptionEditRequiresParticipant bool
+}
+
 type SettingsService struct {
 	settings repository.SettingsRepository
 }
@@ -70,4 +76,25 @@ func (s *SettingsService) GetEmailConfig(ctx context.Context) (EmailConfig, erro
 		MaxEmailsPerDay:      maxEmails,
 		UpcomingReminderDays: reminderDays,
 	}, nil
+}
+
+func (s *SettingsService) GetAppConfig(ctx context.Context) (AppConfig, error) {
+	all, err := s.settings.GetAll(ctx)
+	if err != nil {
+		return AppConfig{}, err
+	}
+
+	return AppConfig{
+		AllowPastParticipation:             settingBoolDefault(all, "allow_past_participation", true),
+		AllowParticipantDescriptionEdit:    settingBoolDefault(all, "allow_participant_description_edit", false),
+		DescriptionEditRequiresParticipant: settingBoolDefault(all, "description_edit_requires_participant", true),
+	}, nil
+}
+
+func settingBoolDefault(settings map[string]string, key string, fallback bool) bool {
+	value, ok := settings[key]
+	if !ok || value == "" {
+		return fallback
+	}
+	return value == "true"
 }

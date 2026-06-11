@@ -23,11 +23,12 @@ type OccurrenceHandler struct {
 	occurrences *service.OccurrenceService
 	groups      *service.GroupService
 	users       *service.UserService
+	settings    *service.SettingsService
 	comments    repository.CommentRepository
 }
 
-func NewOccurrenceHandler(occ *service.OccurrenceService, grp *service.GroupService, users *service.UserService, comments repository.CommentRepository) *OccurrenceHandler {
-	return &OccurrenceHandler{occurrences: occ, groups: grp, users: users, comments: comments}
+func NewOccurrenceHandler(occ *service.OccurrenceService, grp *service.GroupService, users *service.UserService, settings *service.SettingsService, comments repository.CommentRepository) *OccurrenceHandler {
+	return &OccurrenceHandler{occurrences: occ, groups: grp, users: users, settings: settings, comments: comments}
 }
 
 type OccurrenceListItem struct {
@@ -405,6 +406,12 @@ func (h *OccurrenceHandler) Detail(c *gin.Context) {
 	isSignedUp := containsUser(participants, currentUser.ID)
 	isFull := len(participants) >= occ.MaxParticipants
 	status := service.ComputeOccStatus(occ, len(participants))
+	appConfig, err := h.appConfig(c)
+	if err != nil {
+		appConfig = closedAppConfig()
+	}
+	canParticipate := appConfig.AllowPastParticipation || !occ.Date.Before(time.Now())
+	canEditDescription := h.canEditDescription(currentUser, isSignedUp, appConfig)
 
 	var group *domain.Group
 	if occ.GroupID != 0 {
@@ -431,19 +438,21 @@ func (h *OccurrenceHandler) Detail(c *gin.Context) {
 	}
 
 	Page(c, "occurrence_detail.html", pageData(c, gin.H{
-		"Occurrence":   occ,
-		"Group":        group,
-		"Participants": participants,
-		"IsSignedUp":   isSignedUp,
-		"IsFull":       isFull,
-		"Status":       status,
-		"ActivePage":   "occurrences",
-		"PageTitle":    occ.Title,
-		"Comments":     comments,
-		"OccurrenceID": id,
-		"IsRecurring":  occ.RecurrenceID != "" && seriesCount > 1,
-		"SeriesCount":  seriesCount,
-		"FutureCount":  futureCount,
+		"Occurrence":         occ,
+		"Group":              group,
+		"Participants":       participants,
+		"IsSignedUp":         isSignedUp,
+		"IsFull":             isFull,
+		"CanParticipate":     canParticipate,
+		"CanEditDescription": canEditDescription,
+		"Status":             status,
+		"ActivePage":         "occurrences",
+		"PageTitle":          occ.Title,
+		"Comments":           comments,
+		"OccurrenceID":       id,
+		"IsRecurring":        occ.RecurrenceID != "" && seriesCount > 1,
+		"SeriesCount":        seriesCount,
+		"FutureCount":        futureCount,
 	}), "participant_list.html", "comment_list.html")
 }
 
@@ -457,6 +466,22 @@ func (h *OccurrenceHandler) SignUp(c *gin.Context) {
 		return
 	}
 	user, _ := CurrentUser(c)
+	occ, err := h.occurrences.GetOccurrence(c.Request.Context(), id)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	appConfig, err := h.appConfig(c)
+	if err != nil {
+		c.Header("HX-Reswap", "none")
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+	if !appConfig.AllowPastParticipation && occ.Date.Before(time.Now()) {
+		c.Header("HX-Reswap", "none")
+		c.String(http.StatusConflict, i18n.T(lang, "flash.pastParticipationDisabled"))
+		return
+	}
 	isOverMax, err := h.occurrences.SignUp(c.Request.Context(), id, user.ID)
 	if err != nil {
 		if errors.Is(err, service.ErrUserOOO) {
@@ -485,12 +510,29 @@ func (h *OccurrenceHandler) SignUp(c *gin.Context) {
 }
 
 func (h *OccurrenceHandler) Withdraw(c *gin.Context) {
+	lang := i18n.GetLang(c)
 	id, err := pathID(c)
 	if err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
 	user, _ := CurrentUser(c)
+	occ, err := h.occurrences.GetOccurrence(c.Request.Context(), id)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	appConfig, err := h.appConfig(c)
+	if err != nil {
+		c.Header("HX-Reswap", "none")
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+	if !appConfig.AllowPastParticipation && occ.Date.Before(time.Now()) {
+		c.Header("HX-Reswap", "none")
+		c.String(http.StatusConflict, i18n.T(lang, "flash.pastParticipationDisabled"))
+		return
+	}
 	if err := h.occurrences.Withdraw(c.Request.Context(), id, user.ID); err != nil {
 		slog.Error("withdraw: failed", "user_id", user.ID, "occurrence_id", id, "error", err)
 		c.Status(http.StatusInternalServerError)
@@ -498,6 +540,51 @@ func (h *OccurrenceHandler) Withdraw(c *gin.Context) {
 	}
 	slog.Info("occurrence_withdraw", "user_id", user.ID, "occurrence_id", id)
 	h.renderParticipantList(c, id, user.ID, false)
+}
+
+func (h *OccurrenceHandler) UpdateDescription(c *gin.Context) {
+	lang := i18n.GetLang(c)
+	id, err := pathID(c)
+	if err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	user, _ := CurrentUser(c)
+	occ, err := h.occurrences.GetOccurrence(c.Request.Context(), id)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	participants, err := h.occurrences.GetParticipants(c.Request.Context(), id)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	isSignedUp := containsUser(participants, user.ID)
+	appConfig, err := h.appConfig(c)
+	if err != nil {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+	if !h.canEditDescription(user, isSignedUp, appConfig) {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	description := c.PostForm("description")
+	if len([]rune(description)) > 5000 {
+		SetFlash(c, "error", i18n.T(lang, "flash.descriptionTooLong"))
+		c.Redirect(http.StatusFound, "/duties/"+strconv.FormatInt(id, 10))
+		return
+	}
+	if err := h.occurrences.UpdateDescription(c.Request.Context(), occ.ID, description); err != nil {
+		slog.Error("occurrence: description update failed", "user_id", user.ID, "occurrence_id", id, "error", err)
+		SetFlash(c, "error", i18n.T(lang, "flash.failedUpdateOccurrence"))
+		c.Redirect(http.StatusFound, "/duties/"+strconv.FormatInt(id, 10))
+		return
+	}
+	slog.Info("occurrence_description_updated", "user_id", user.ID, "occurrence_id", id)
+	SetFlash(c, "success", i18n.T(lang, "flash.descriptionUpdated"))
+	c.Redirect(http.StatusFound, "/duties/"+strconv.FormatInt(id, 10))
 }
 
 func (h *OccurrenceHandler) Assign(c *gin.Context) {
@@ -665,13 +752,56 @@ func (h *OccurrenceHandler) renderParticipantList(c *gin.Context, occID, current
 	occ, _ := h.occurrences.GetOccurrence(c.Request.Context(), occID)
 	participants, _ := h.occurrences.GetParticipants(c.Request.Context(), occID)
 	currentUser, _ := CurrentUser(c)
+	appConfig, err := h.appConfig(c)
+	canParticipate := false
+	if err == nil {
+		canParticipate = appConfig.AllowPastParticipation || !occ.Date.Before(time.Now())
+	}
 	Partial(c, "participant_list.html", gin.H{
-		"Occurrence":   occ,
-		"Participants": participants,
-		"CurrentUser":  currentUser,
-		"IsSignedUp":   containsUser(participants, currentUserID),
-		"IsFull":       isOverMax || len(participants) >= occ.MaxParticipants,
+		"Occurrence":     occ,
+		"Participants":   participants,
+		"CurrentUser":    currentUser,
+		"IsSignedUp":     containsUser(participants, currentUserID),
+		"IsFull":         isOverMax || len(participants) >= occ.MaxParticipants,
+		"CanParticipate": canParticipate,
 	})
+}
+
+func (h *OccurrenceHandler) appConfig(c *gin.Context) (service.AppConfig, error) {
+	if h.settings == nil {
+		return service.AppConfig{
+			AllowPastParticipation:             true,
+			AllowParticipantDescriptionEdit:    false,
+			DescriptionEditRequiresParticipant: true,
+		}, nil
+	}
+	cfg, err := h.settings.GetAppConfig(c.Request.Context())
+	if err != nil {
+		slog.Error("settings: app config load failed", "error", err)
+		return service.AppConfig{}, err
+	}
+	return cfg, nil
+}
+
+func closedAppConfig() service.AppConfig {
+	return service.AppConfig{
+		AllowPastParticipation:             false,
+		AllowParticipantDescriptionEdit:    false,
+		DescriptionEditRequiresParticipant: true,
+	}
+}
+
+func (h *OccurrenceHandler) canEditDescription(user domain.User, isSignedUp bool, cfg service.AppConfig) bool {
+	if user.Role == domain.RoleAdmin || user.Role == domain.RoleOrganizer {
+		return true
+	}
+	if !cfg.AllowParticipantDescriptionEdit {
+		return false
+	}
+	if cfg.DescriptionEditRequiresParticipant {
+		return isSignedUp
+	}
+	return true
 }
 
 func (h *OccurrenceHandler) occurrenceFromForm(c *gin.Context, lang string) (domain.Occurrence, error) {

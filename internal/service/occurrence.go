@@ -64,6 +64,10 @@ func (s *OccurrenceService) UpdateOccurrence(ctx context.Context, o domain.Occur
 	return s.occurrences.Save(ctx, o)
 }
 
+func (s *OccurrenceService) UpdateDescription(ctx context.Context, id int64, description string) error {
+	return s.occurrences.UpdateDescription(ctx, id, description)
+}
+
 func (s *OccurrenceService) DeleteOccurrence(ctx context.Context, id int64) error {
 	return s.occurrences.Delete(ctx, id)
 }

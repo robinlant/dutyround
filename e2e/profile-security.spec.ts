@@ -403,16 +403,41 @@ test('12 - settings password toggle updates state and saving settings keeps admi
   await page.fill('#max-emails', '3');
   await page.fill('#reminder-days', '5');
 
-  await page.locator('form[action="/settings"] button[type="submit"]').click();
-  await expect(page.locator('.flash-success')).toContainText('Email settings saved.');
+  await page.locator('button[form="settings-save-form"]').click();
+  await expect(page.locator('.flash-success')).toContainText('Settings saved.');
   await expect(page.locator('#smtp-password')).toHaveValue('smtp-secret-789');
   await expect(page.locator('#smtp-host')).toHaveValue('smtp.example.test');
 });
 
 // ---------------------------------------------------------------------------
-// 13. Users create form toggle updates text and the admin form still submits
+// 13. Settings group navigation scrolls and exposes active state
 // ---------------------------------------------------------------------------
-test('13 - users create form toggle updates state and user creation still works', async ({ page }) => {
+test('13 - settings group navigation scrolls and exposes active state', async ({ page }) => {
+  await login(page, 'secadmin@test.com', 'password123');
+  await page.goto('/settings');
+
+  const emailLink = page.locator('.settings-nav-link[href="#settings-email"]');
+  const dutiesLink = page.locator('.settings-nav-link[href="#settings-duties"]');
+  await expect(emailLink).toBeVisible();
+  await expect(dutiesLink).toBeVisible();
+  await expect(page.locator('#settings-email')).toBeVisible();
+  await expect(page.locator('#settings-duties')).toBeVisible();
+  await expect(emailLink).toHaveAttribute('aria-current', 'true');
+
+  await dutiesLink.click();
+  await expect(dutiesLink).toHaveAttribute('aria-current', 'true');
+  await expect.poll(() => page.locator('.settings-scroll').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/settings');
+  await expect(page.locator('.settings-nav')).toBeVisible();
+  await expect(page.locator('.settings-page-grid')).toHaveCSS('grid-template-columns', /\d+px/);
+});
+
+// ---------------------------------------------------------------------------
+// 14. Users create form toggle updates text and the admin form still submits
+// ---------------------------------------------------------------------------
+test('14 - users create form toggle updates state and user creation still works', async ({ page }) => {
   const email = uniqueEmail('created-user');
 
   await login(page, 'secadmin@test.com', 'password123');
@@ -437,9 +462,9 @@ test('13 - users create form toggle updates state and user creation still works'
 });
 
 // ---------------------------------------------------------------------------
-// 14. Users set-password toggle updates text and the admin password form works
+// 15. Users set-password toggle updates text and the admin password form works
 // ---------------------------------------------------------------------------
-test('14 - users set-password toggle updates state and password reset still works', async ({ browser }) => {
+test('15 - users set-password toggle updates state and password reset still works', async ({ browser }) => {
   const email = uniqueEmail('reset-user');
 
   const adminCtx = await browser.newContext({ baseURL: 'http://localhost:3992' });
@@ -474,9 +499,9 @@ test('14 - users set-password toggle updates state and password reset still work
 });
 
 // ---------------------------------------------------------------------------
-// 15. Theme selection persists across navigation and reloads
+// 16. Theme selection persists across navigation and reloads
 // ---------------------------------------------------------------------------
-test('15 - theme toggle persists the selected theme across navigation and reload', async ({ page }) => {
+test('16 - theme toggle persists the selected theme across navigation and reload', async ({ page }) => {
   await login(page, 'secadmin@test.com', 'password123');
   await page.goto('/profile');
 

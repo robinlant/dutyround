@@ -34,6 +34,9 @@ Thumbs.db
 test-data
 
 # Node / Playwright
+.tools/
+.npm-cache/
+.pw-browsers/
 node_modules/
 package.json
 package-lock.json

@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/robinlant/dutyround/internal/domain"
+	"github.com/robinlant/dutyround/internal/service"
 )
 
 // newFormContext creates a gin.Context that simulates a POST with the given form values.
@@ -109,6 +112,66 @@ func TestOccurrenceFromForm_EmptyDescriptionAllowed(t *testing.T) {
 	_, err := h.occurrenceFromForm(c, "en")
 	if err != nil {
 		t.Fatalf("empty description should be accepted, got error: %v", err)
+	}
+}
+
+func TestCanEditDescription(t *testing.T) {
+	h := &OccurrenceHandler{}
+
+	tests := []struct {
+		name     string
+		user     domain.User
+		signedUp bool
+		cfg      service.AppConfig
+		want     bool
+	}{
+		{
+			name: "admin can edit when participant edits disabled",
+			user: domain.User{Role: domain.RoleAdmin},
+			cfg:  service.AppConfig{AllowParticipantDescriptionEdit: false, DescriptionEditRequiresParticipant: true},
+			want: true,
+		},
+		{
+			name: "organizer can edit when participant edits disabled",
+			user: domain.User{Role: domain.RoleOrganizer},
+			cfg:  service.AppConfig{AllowParticipantDescriptionEdit: false, DescriptionEditRequiresParticipant: true},
+			want: true,
+		},
+		{
+			name: "participant cannot edit when disabled",
+			user: domain.User{Role: domain.RoleParticipant},
+			cfg:  service.AppConfig{AllowParticipantDescriptionEdit: false, DescriptionEditRequiresParticipant: true},
+			want: false,
+		},
+		{
+			name:     "signed-up participant can edit when required",
+			user:     domain.User{Role: domain.RoleParticipant},
+			signedUp: true,
+			cfg:      service.AppConfig{AllowParticipantDescriptionEdit: true, DescriptionEditRequiresParticipant: true},
+			want:     true,
+		},
+		{
+			name:     "unsigned participant cannot edit when signup required",
+			user:     domain.User{Role: domain.RoleParticipant},
+			signedUp: false,
+			cfg:      service.AppConfig{AllowParticipantDescriptionEdit: true, DescriptionEditRequiresParticipant: true},
+			want:     false,
+		},
+		{
+			name:     "unsigned participant can edit when signup not required",
+			user:     domain.User{Role: domain.RoleParticipant},
+			signedUp: false,
+			cfg:      service.AppConfig{AllowParticipantDescriptionEdit: true, DescriptionEditRequiresParticipant: false},
+			want:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := h.canEditDescription(tt.user, tt.signedUp, tt.cfg); got != tt.want {
+				t.Fatalf("canEditDescription() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
