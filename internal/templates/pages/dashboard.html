@@ -6,20 +6,7 @@
       <p style="color:var(--text-muted);font-size:13px">{{t .Lang "dash.allFilled"}}</p>
     {{else}}
       {{range .OpenOccurrences}}
-        <a href="/duties/{{.ID}}" class="dash-occ-item">
-          <div style="min-width:0;flex:1">
-            <div class="dash-occ-title">
-              <span class="occ-status-dot {{.Status}}"></span>
-              {{.Title}}
-              {{if eq .Status "under"}}<span class="badge badge-red" style="font-size:10px;margin-left:4px">{{t $.Lang "dash.needsMore"}} {{.Needed}} {{t $.Lang "dash.more"}}</span>{{end}}
-            </div>
-            <div class="dash-occ-sub">{{.ParticipantCount}}/{{.MinParticipants}}&#8211;{{.MaxParticipants}} {{t $.Lang "occ.people"}}</div>
-          </div>
-          <div class="dash-occ-meta">
-            <div class="dash-occ-date">{{weekdayT $.Lang .Date}}, {{formatDate .Date}}</div>
-            <div class="dash-occ-days">{{relativeDay $.Lang .Date}}</div>
-          </div>
-        </a>
+        {{template "duty_list_item_compact" dict "Occurrence" . "Lang" $.Lang}}
       {{end}}
     {{end}}
   </div>
@@ -29,20 +16,7 @@
     <div class="card">
       <div class="card-title">{{t .Lang "dash.yourSchedule"}}</div>
       {{range .UserUpcoming}}
-        <a href="/duties/{{.ID}}" class="dash-occ-item">
-          <div style="min-width:0;flex:1">
-            <div class="dash-occ-title">
-              <span class="occ-status-dot {{.Status}}"></span>
-              {{.Title}}
-              {{if eq .Status "under"}}<span class="badge badge-red" style="font-size:10px;margin-left:4px">{{t $.Lang "dash.needsMore"}} {{.Needed}} {{t $.Lang "dash.more"}}</span>{{end}}
-            </div>
-            <div class="dash-occ-sub">{{.ParticipantCount}}/{{.MinParticipants}}&#8211;{{.MaxParticipants}} {{t $.Lang "occ.people"}}</div>
-          </div>
-          <div class="dash-occ-meta">
-            <div class="dash-occ-date">{{weekdayT $.Lang .Date}}, {{formatDate .Date}}</div>
-            <div class="dash-occ-days">{{relativeDay $.Lang .Date}}</div>
-          </div>
-        </a>
+        {{template "duty_list_item_compact" dict "Occurrence" . "Lang" $.Lang}}
       {{end}}
     </div>
     {{end}}

@@ -120,6 +120,20 @@ var funcMap = template.FuncMap{
 		return t.Weekday().String()
 	},
 	"list": func(args ...string) []string { return args },
+	"dict": func(values ...any) (map[string]any, error) {
+		if len(values)%2 != 0 {
+			return nil, fmt.Errorf("invalid dict call")
+		}
+		dict := make(map[string]any, len(values)/2)
+		for i := 0; i < len(values); i += 2 {
+			key, ok := values[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("dict keys must be strings")
+			}
+			dict[key] = values[i+1]
+		}
+		return dict, nil
+	},
 }
 
 // templateCache caches parsed templates to avoid re-parsing on every request.
@@ -151,7 +165,7 @@ func getCachedTemplate(key string, patterns []string) (*template.Template, error
 // data must include "CurrentUser" and optionally "Flash".
 // Extra partial filenames can be passed to include their definitions (e.g. for inline partials).
 func Page(c *gin.Context, page string, data gin.H, extraPartials ...string) {
-	patterns := []string{"layouts/base.html", "partials/icons.html", "pages/" + page}
+	patterns := []string{"layouts/base.html", "partials/*.html", "pages/" + page}
 	for _, p := range extraPartials {
 		patterns = append(patterns, "partials/"+p)
 	}
@@ -178,7 +192,7 @@ func Partial(c *gin.Context, partial string, data any) {
 			m["Lang"] = i18n.GetLang(c)
 		}
 	}
-	patterns := []string{"partials/icons.html", "partials/" + partial}
+	patterns := []string{"partials/*.html"}
 	cacheKey := "partial:" + partial
 	t, err := getCachedTemplate(cacheKey, patterns)
 	if err != nil {

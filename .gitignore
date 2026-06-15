@@ -30,15 +30,16 @@ Thumbs.db
 # Claude
 **/.claude
 **/.playwright-mcp
-*.png
 test-data
 
 # Node / Playwright
 node_modules/
-package.json
-package-lock.json
-playwright.config.ts
 test-results/
+playwright-report/
+blob-report/
 
 # Test binary
 dutyround-test-bin
+.npm-cache/
+.pw-browsers/
+.tools/

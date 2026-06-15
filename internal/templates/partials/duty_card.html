@@ -1,0 +1,24 @@
+{{define "duty_card"}}
+{{$group := index .Groups .Occurrence.GroupID}}
+<a href="/duties/{{.Occurrence.ID}}" class="occ-card status-{{.Occurrence.Status}}{{if isPast .Occurrence.Date}} past{{end}}">
+  <div class="occ-card-header">
+    <span class="occ-card-title">{{.Occurrence.Title}}</span>
+  </div>
+  <div class="occ-card-badges">
+    {{if $group.ID}}<span class="badge {{if $group.Color}}badge-group-{{$group.Color}}{{else}}badge-accent{{end}}">{{$group.Name}}</span>{{end}}
+    {{if .Occurrence.RecurrenceID}}<span class="badge badge-blue">{{t .Lang "occ.recurring"}}</span>{{end}}
+    {{if isPast .Occurrence.Date}}<span class="badge badge-gray">{{t .Lang "occ.past"}}</span>{{end}}
+    {{if eq .Occurrence.Status "under"}}<span class="badge badge-red">{{t .Lang "occ.needsPeople"}}</span>
+    {{else if eq .Occurrence.Status "good"}}<span class="badge badge-green">{{t .Lang "occ.filled"}}</span>
+    {{else if eq .Occurrence.Status "over"}}<span class="badge badge-yellow">{{t .Lang "occ.overStaffed"}}</span>{{end}}
+  </div>
+  {{if .Occurrence.Description}}<div class="occ-card-desc">{{.Occurrence.Description}}</div>{{end}}
+  <div class="occ-card-footer">
+    <div>
+      <div class="occ-card-date">{{formatDate .Occurrence.Date}}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">{{weekdayT .Lang .Occurrence.Date}} &middot; {{relativeDay .Lang .Occurrence.Date}}</div>
+    </div>
+    <span class="occ-card-slots">{{.Occurrence.ParticipantCount}}/{{.Occurrence.MinParticipants}}&#8211;{{.Occurrence.MaxParticipants}}</span>
+  </div>
+</a>
+{{end}}

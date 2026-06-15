@@ -1,0 +1,16 @@
+{{define "duty_list_item_compact"}}
+<a href="/duties/{{.Occurrence.ID}}" class="dash-occ-item">
+  <div style="min-width:0;flex:1">
+    <div class="dash-occ-title">
+      <span class="occ-status-dot {{.Occurrence.Status}}"></span>
+      {{.Occurrence.Title}}
+      {{if eq .Occurrence.Status "under"}}<span class="badge badge-red" style="font-size:10px;margin-left:4px">{{t .Lang "dash.needsMore"}} {{.Occurrence.Needed}} {{t .Lang "dash.more"}}</span>{{end}}
+    </div>
+    <div class="dash-occ-sub">{{.Occurrence.ParticipantCount}}/{{.Occurrence.MinParticipants}}&#8211;{{.Occurrence.MaxParticipants}} {{t .Lang "occ.people"}}</div>
+  </div>
+  <div class="dash-occ-meta">
+    <div class="dash-occ-date">{{weekdayT .Lang .Occurrence.Date}}, {{formatDate .Occurrence.Date}}</div>
+    <div class="dash-occ-days">{{relativeDay .Lang .Occurrence.Date}}</div>
+  </div>
+</a>
+{{end}}
