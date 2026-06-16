@@ -158,6 +158,10 @@ func (s *OccurrenceService) ListOccurrences(ctx context.Context) ([]domain.Occur
 	return s.occurrences.FindAll(ctx)
 }
 
+func (s *OccurrenceService) GetRecentTemplates(ctx context.Context) ([]domain.Occurrence, error) {
+	return s.occurrences.FindRecentTemplates(ctx)
+}
+
 func (s *OccurrenceService) GetParticipantCountsByOccurrence(ctx context.Context) (map[int64]int, error) {
 	return s.participations.CountAllByOccurrence(ctx)
 }
