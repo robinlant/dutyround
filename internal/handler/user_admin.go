@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -90,7 +92,11 @@ func (h *UserAdminHandler) SetPassword(c *gin.Context) {
 		slog.Info("user_password_set", "actor_user_id", actor.ID, "user_id", id)
 		SetFlash(c, "success", i18n.T(lang, "flash.passwordUpdated"))
 	}
-	c.Redirect(http.StatusFound, "/users")
+	if c.PostForm("redirect") == "profile" {
+		c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(id, 10))
+	} else {
+		c.Redirect(http.StatusFound, "/users")
+	}
 }
 
 func (h *UserAdminHandler) SetEmail(c *gin.Context) {
@@ -143,4 +149,67 @@ func (h *UserAdminHandler) Delete(c *gin.Context) {
 		SetFlash(c, "success", i18n.T(lang, "flash.userDeleted"))
 	}
 	c.Redirect(http.StatusFound, "/users")
+}
+
+func (h *UserAdminHandler) AddOOO(c *gin.Context) {
+	lang := i18n.GetLang(c)
+	id, err := pathID(c)
+	if err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	from, err1 := time.ParseInLocation("2006-01-02", c.PostForm("from"), time.Local)
+	to, err2 := time.ParseInLocation("2006-01-02", c.PostForm("to"), time.Local)
+	if err1 != nil || err2 != nil {
+		SetFlash(c, "error", i18n.T(lang, "flash.invalidDates"))
+		c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(id, 10))
+		return
+	}
+	if to.Before(from) {
+		SetFlash(c, "error", i18n.T(lang, "flash.endDateAfterStart"))
+		c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(id, 10))
+		return
+	}
+
+	reason := c.PostForm("reason")
+	actor, _ := CurrentUser(c)
+	ooo, err := h.users.AddOutOfOffice(c.Request.Context(), id, from, to, reason)
+	if err != nil {
+		if errors.Is(err, service.ErrOOOConflict) {
+			SetFlash(c, "error", i18n.T(lang, "flash.oooConflictDetail"))
+		} else if errors.Is(err, service.ErrOOOOverlap) {
+			SetFlash(c, "error", i18n.T(lang, "flash.oooOverlap"))
+		} else {
+			SetFlash(c, "error", i18n.T(lang, "flash.invalidFormData"))
+		}
+		c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(id, 10))
+		return
+	}
+	slog.Info("admin_ooo_added", "actor_user_id", actor.ID, "target_user_id", id, "ooo_id", ooo.ID)
+	SetFlash(c, "success", i18n.T(lang, "flash.oooAdded"))
+	c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(id, 10))
+}
+
+func (h *UserAdminHandler) DeleteOOO(c *gin.Context) {
+	lang := i18n.GetLang(c)
+	uid, err := pathID(c)
+	if err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	oid, err := strconv.ParseInt(c.Param("oid"), 10, 64)
+	if err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	actor, _ := CurrentUser(c)
+	if err := h.users.RemoveOutOfOfficeAdmin(c.Request.Context(), oid); err != nil {
+		slog.Error("admin_ooo_delete: failed", "actor_user_id", actor.ID, "ooo_id", oid, "error", err)
+		SetFlash(c, "error", "Failed to delete OOO")
+		c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(uid, 10))
+		return
+	}
+	slog.Info("admin_ooo_deleted", "actor_user_id", actor.ID, "ooo_id", oid)
+	SetFlash(c, "success", i18n.T(lang, "flash.oooDeleted"))
+	c.Redirect(http.StatusFound, "/profile/"+strconv.FormatInt(uid, 10))
 }

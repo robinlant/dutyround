@@ -5,9 +5,9 @@
   <form hx-post="/duties/{{.OccurrenceID}}/assign"
         hx-target="#participant-section"
         hx-swap="outerHTML"
-        class="row">
+        class="stack-sm">
     <input type="hidden" name="user_id" id="assign-user-id">
-    <div class="custom-select-wrap" style="flex:1">
+    <div class="custom-select-wrap">
       <input type="text" class="custom-select-input" id="assign-search"
              placeholder="{{t .Lang "occ.searchUser"}}"
              autocomplete="off"
@@ -15,18 +15,24 @@
              oninput="filterAssignDropdown(this.value)">
       <div class="custom-select-dropdown" id="assign-dropdown">
         {{range .Users}}
-          <div class="custom-select-option" data-value="{{.User.ID}}" data-name="{{.User.Name}} ({{.Count}} {{t $.Lang "occ.done"}})"
-               onclick="selectAssignUser(this)">
+          <div class="custom-select-option{{if .IsOOO}} ooo-disabled{{end}}" data-value="{{.User.ID}}" data-name="{{.User.Name}} ({{.Count}} {{t $.Lang "occ.done"}})"
+               {{if not .IsOOO}}onclick="selectAssignUser(this)"{{end}}
+               {{if .IsOOO}}style="opacity:0.5;cursor:not-allowed"{{end}}>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="user-avatar" style="width:22px;height:22px;font-size:9px">{{initial .User.Name}}</div>
-              <span>{{.User.Name}}</span>
+              <div style="display:flex;align-items:center;gap:4px">
+                <span>{{.User.Name}}</span>
+                {{if eq .User.Role "admin"}}<span class="badge badge-red" style="font-size:9px;padding:1px 4px">{{.User.Role}}</span>
+                {{else if eq .User.Role "organizer"}}<span class="badge badge-accent" style="font-size:9px;padding:1px 4px">{{.User.Role}}</span>{{end}}
+              </div>
+              {{if .IsOOO}}<span style="color:var(--danger);font-size:11px">({{t $.Lang "profile.ooo"}}{{if .OOOReason}}: {{.OOOReason}}{{end}})</span>{{end}}
             </div>
             <span style="color:var(--text-muted);font-size:11px">{{.Count}} {{t $.Lang "occ.done"}}</span>
           </div>
         {{end}}
       </div>
     </div>
-    <button type="submit" class="btn btn-primary btn-sm">{{t .Lang "occ.assign"}}</button>
+    <button type="submit" class="btn btn-primary btn-sm" style="width:100%">{{t .Lang "occ.assign"}}</button>
   </form>
 
 {{end}}

@@ -1,0 +1,1 @@
+ALTER TABLE out_of_office ADD COLUMN reason TEXT NOT NULL DEFAULT '';

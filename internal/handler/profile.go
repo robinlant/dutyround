@@ -151,14 +151,15 @@ func (h *ProfileHandler) AddOOO(c *gin.Context) {
 		c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; `+i18n.T(lang, "flash.invalidDates")+`</div>`)
 		return
 	}
-	if !to.After(from) {
+	if to.Before(from) {
 		c.Header("HX-Retarget", "#ooo-error")
 		c.Header("HX-Reswap", "innerHTML")
 		c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; `+i18n.T(lang, "flash.endDateAfterStart")+`</div>`)
 		return
 	}
 
-	ooo, err := h.users.AddOutOfOffice(c.Request.Context(), user.ID, from, to)
+	reason := c.PostForm("reason")
+	ooo, err := h.users.AddOutOfOffice(c.Request.Context(), user.ID, from, to, reason)
 	if err != nil {
 		if errors.Is(err, service.ErrOOOConflict) {
 			slog.Warn("ooo: conflict with existing participation", "user_id", user.ID)
@@ -179,12 +180,20 @@ func (h *ProfileHandler) AddOOO(c *gin.Context) {
 		return
 	}
 	slog.Info("ooo_added", "user_id", user.ID, "ooo_id", ooo.ID)
-	c.Header("HX-Refresh", "true")
-	c.Status(http.StatusOK)
+	
+	ooos, _ := h.users.GetOutOfOffice(c.Request.Context(), user.ID)
+	c.HTML(http.StatusOK, "ooo_list", gin.H{
+		"CurrentUser": user,
+		"ProfileUser": user,
+		"OOOs":        ooos,
+		"CSRFToken":   c.GetString("csrf_token"),
+		"Lang":        lang,
+	})
 }
 
 // DeleteOOO — HTMX: returns updated ooo_list partial.
 func (h *ProfileHandler) DeleteOOO(c *gin.Context) {
+	lang := i18n.GetLang(c)
 	id, err := pathID(c)
 	if err != nil {
 		c.Status(http.StatusBadRequest)
@@ -194,16 +203,27 @@ func (h *ProfileHandler) DeleteOOO(c *gin.Context) {
 	if err := h.users.RemoveOutOfOffice(c.Request.Context(), id, user.ID); err != nil {
 		if errors.Is(err, service.ErrOOONotOwner) {
 			slog.Warn("ooo: delete denied — not owner", "user_id", user.ID, "ooo_id", id)
-			c.Status(http.StatusForbidden)
+			c.Header("HX-Retarget", "#ooo-error")
+			c.Header("HX-Reswap", "innerHTML")
+			c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; `+i18n.T(lang, "flash.cannotDeleteSelf")+`</div>`)
 			return
 		}
 		slog.Error("ooo: delete failed", "user_id", user.ID, "ooo_id", id, "error", err)
-		c.Status(http.StatusInternalServerError)
+		c.Header("HX-Retarget", "#ooo-error")
+		c.Header("HX-Reswap", "innerHTML")
+		c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; Failed to delete OOO</div>`)
 		return
 	}
 	slog.Info("ooo_deleted", "user_id", user.ID, "ooo_id", id)
-	c.Header("HX-Refresh", "true")
-	c.Status(http.StatusOK)
+	
+	ooos, _ := h.users.GetOutOfOffice(c.Request.Context(), user.ID)
+	c.HTML(http.StatusOK, "ooo_list", gin.H{
+		"CurrentUser": user,
+		"ProfileUser": user,
+		"OOOs":        ooos,
+		"CSRFToken":   c.GetString("csrf_token"),
+		"Lang":        lang,
+	})
 }
 
 func (h *ProfileHandler) buildUserOccurrences(c *gin.Context, userID int64) ([]OccurrenceListItem, map[int64]domain.Group) {

@@ -82,7 +82,8 @@ type ExportRow struct {
 type OutOfOfficeRepository interface {
 	FindByID(ctx context.Context, id int64) (domain.OutOfOffice, error)
 	FindByUser(ctx context.Context, userID int64) ([]domain.OutOfOffice, error)
-	Save(ctx context.Context, ooo domain.OutOfOffice) (domain.OutOfOffice, error)
+	FindAllForDate(ctx context.Context, date time.Time) ([]domain.OutOfOffice, error)
+	Save(ctx context.Context, o domain.OutOfOffice) (domain.OutOfOffice, error)
 	Delete(ctx context.Context, id int64) error
 }
 

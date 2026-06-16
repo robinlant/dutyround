@@ -115,7 +115,10 @@ func (s *UserService) SetPassword(ctx context.Context, userID int64, newPassword
 	return err
 }
 
-func (s *UserService) AddOutOfOffice(ctx context.Context, userID int64, from, to time.Time) (domain.OutOfOffice, error) {
+func (s *UserService) AddOutOfOffice(ctx context.Context, userID int64, from, to time.Time, reason string) (domain.OutOfOffice, error) {
+	if to.Before(from) {
+		return domain.OutOfOffice{}, errors.New("end date cannot be before start date")
+	}
 	exists, err := s.participations.ExistsForUserInDateRange(ctx, userID, from, to)
 	if err != nil {
 		return domain.OutOfOffice{}, err
@@ -129,9 +132,9 @@ func (s *UserService) AddOutOfOffice(ctx context.Context, userID int64, from, to
 		return domain.OutOfOffice{}, err
 	}
 	for _, o := range existing {
-		// Two periods overlap if one starts before the other ends AND vice versa.
-		// Adjacent periods (from == o.To or to == o.From) are allowed.
-		if from.Before(o.To) && to.After(o.From) {
+		// Two periods overlap if they share any days. Since ranges are inclusive,
+		// touching boundaries (from == o.To or to == o.From) ARE an overlap.
+		if !from.After(o.To) && !to.Before(o.From) {
 			return domain.OutOfOffice{}, ErrOOOOverlap
 		}
 	}
@@ -139,6 +142,7 @@ func (s *UserService) AddOutOfOffice(ctx context.Context, userID int64, from, to
 		UserID: userID,
 		From:   from,
 		To:     to,
+		Reason: reason,
 	})
 }
 
@@ -151,6 +155,10 @@ func (s *UserService) RemoveOutOfOffice(ctx context.Context, oooID, userID int64
 	if ooo.UserID != userID {
 		return ErrOOONotOwner
 	}
+	return s.ooo.Delete(ctx, oooID)
+}
+
+func (s *UserService) RemoveOutOfOfficeAdmin(ctx context.Context, oooID int64) error {
 	return s.ooo.Delete(ctx, oooID)
 }
 

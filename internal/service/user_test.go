@@ -35,23 +35,61 @@ func TestAddOutOfOffice_NoOverlap(t *testing.T) {
 	user := createUser(t, svc, "alice", "alice@test.com")
 
 	// Create first OOO: Jan 1 - Jan 10
-	_, err := svc.AddOutOfOffice(ctx, user.ID,
+	ooo, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"Vacation",
 	)
 	if err != nil {
 		t.Fatalf("first OOO should succeed: %v", err)
+	}
+	if ooo.Reason != "Vacation" {
+		t.Fatalf("expected reason Vacation, got: %q", ooo.Reason)
 	}
 
 	// Create second OOO with no overlap: Feb 1 - Feb 10
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 2, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatalf("non-overlapping OOO should succeed: %v", err)
 	}
 }
+
+func TestAddOutOfOffice_SingleDayOverlap(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+	user := createUser(t, svc, "charlie", "charlie@test.com")
+
+	// Create first OOO: Jan 1 - Jan 1
+	_, err := svc.AddOutOfOffice(ctx, user.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		"",
+	)
+	if err != nil {
+		t.Fatalf("first single-day OOO should succeed: %v", err)
+	}
+
+	// Overlap with same day
+	_, err = svc.AddOutOfOffice(ctx, user.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		"",
+	)
+	if err != service.ErrOOOOverlap {
+		t.Fatalf("expected ErrOOOOverlap, got: %v", err)
+	}
+}
+
 
 func TestAddOutOfOffice_PartialOverlapAtEnd(t *testing.T) {
 	db := setupTestDB(t)
@@ -68,6 +106,7 @@ func TestAddOutOfOffice_PartialOverlapAtEnd(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -77,6 +116,7 @@ func TestAddOutOfOffice_PartialOverlapAtEnd(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != service.ErrOOOOverlap {
 		t.Fatalf("expected ErrOOOOverlap, got: %v", err)
@@ -98,6 +138,7 @@ func TestAddOutOfOffice_PartialOverlapAtStart(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +148,7 @@ func TestAddOutOfOffice_PartialOverlapAtStart(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != service.ErrOOOOverlap {
 		t.Fatalf("expected ErrOOOOverlap, got: %v", err)
@@ -128,6 +170,7 @@ func TestAddOutOfOffice_FullyContained(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -137,6 +180,7 @@ func TestAddOutOfOffice_FullyContained(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != service.ErrOOOOverlap {
 		t.Fatalf("expected ErrOOOOverlap, got: %v", err)
@@ -158,6 +202,7 @@ func TestAddOutOfOffice_FullyContaining(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -167,6 +212,7 @@ func TestAddOutOfOffice_FullyContaining(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != service.ErrOOOOverlap {
 		t.Fatalf("expected ErrOOOOverlap, got: %v", err)
@@ -188,18 +234,20 @@ func TestAddOutOfOffice_AdjacentAllowed(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Adjacent OOO: Jan 10 - Jan 20 (start == end of existing) -- should be ALLOWED
+	// Adjacent OOO: Jan 11 - Jan 20 (starts day after existing) -- should be ALLOWED
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
-		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 11, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
-		t.Fatalf("adjacent OOO (start == end) should be allowed, got: %v", err)
+		t.Fatalf("adjacent OOO should be allowed, got: %v", err)
 	}
 }
 
@@ -218,6 +266,7 @@ func TestAddOutOfOffice_ExactSamePeriod(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -227,6 +276,7 @@ func TestAddOutOfOffice_ExactSamePeriod(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != service.ErrOOOOverlap {
 		t.Fatalf("expected ErrOOOOverlap for exact same period, got: %v", err)
@@ -250,6 +300,7 @@ func TestAddOutOfOffice_DifferentUsersNoConflict(t *testing.T) {
 	_, err := svc.AddOutOfOffice(ctx, user1.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -259,6 +310,7 @@ func TestAddOutOfOffice_DifferentUsersNoConflict(t *testing.T) {
 	_, err = svc.AddOutOfOffice(ctx, user2.ID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
 	)
 	if err != nil {
 		t.Fatalf("different users should not conflict, got: %v", err)
@@ -476,5 +528,115 @@ func TestSetPassword_NoOldPasswordRequired(t *testing.T) {
 	err := svc.SetPassword(context.Background(), u.ID, "adminNewPass1")
 	if err != nil {
 		t.Fatalf("admin SetPassword should succeed without old password: %v", err)
+	}
+}
+
+// --- New Tests for OOO Reason, Conflict, and Admin Deletion ---
+
+func TestAddOutOfOffice_ConflictWithDuty(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	user := createUser(t, svc, "dutyuser", "dutyuser@test.com")
+
+	// Create a dummy occurrence for the user on Jan 5
+	occRepo := sqlite.NewOccurrenceRepository(db)
+	occ, err := occRepo.Save(ctx, domain.Occurrence{
+		Title:           "Dummy",
+		Date:            time.Date(2026, 1, 5, 12, 0, 0, 0, time.UTC),
+		MinParticipants: 1,
+		MaxParticipants: 2,
+	})
+	if err != nil {
+		t.Fatalf("failed to create occurrence: %v", err)
+	}
+
+	// Create a participation for the user on the occurrence
+	_, err = partRepo.Save(ctx, domain.Participation{
+		OccurrenceID: occ.ID,
+		UserID:       user.ID,
+	})
+	if err != nil {
+		t.Fatalf("failed to create participation: %v", err)
+	}
+
+	// Try to create OOO that overlaps with the participation
+	_, err = svc.AddOutOfOffice(ctx, user.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"Sick leave",
+	)
+	if !errors.Is(err, service.ErrOOOConflict) {
+		t.Fatalf("expected ErrOOOConflict, got: %v", err)
+	}
+}
+
+func TestRemoveOutOfOffice_Owner(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	user := createUser(t, svc, "owner", "owner@test.com")
+	ooo, _ := svc.AddOutOfOffice(ctx, user.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
+	)
+
+	err := svc.RemoveOutOfOffice(ctx, ooo.ID, user.ID)
+	if err != nil {
+		t.Fatalf("expected owner to delete OOO, got: %v", err)
+	}
+}
+
+func TestRemoveOutOfOffice_NotOwner(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	user1 := createUser(t, svc, "owner", "owner@test.com")
+	user2 := createUser(t, svc, "other", "other@test.com")
+	ooo, _ := svc.AddOutOfOffice(ctx, user1.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
+	)
+
+	err := svc.RemoveOutOfOffice(ctx, ooo.ID, user2.ID)
+	if !errors.Is(err, service.ErrOOONotOwner) {
+		t.Fatalf("expected ErrOOONotOwner, got: %v", err)
+	}
+}
+
+func TestRemoveOutOfOfficeAdmin(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+	userRepo := sqlite.NewUserRepository(db)
+	oooRepo := sqlite.NewOutOfOfficeRepository(db)
+	partRepo := sqlite.NewParticipationRepository(db)
+	svc := service.NewUserService(userRepo, oooRepo, partRepo)
+
+	user := createUser(t, svc, "owner", "owner@test.com")
+	ooo, _ := svc.AddOutOfOffice(ctx, user.ID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		"",
+	)
+
+	// Admin deletion does not require user ID check
+	err := svc.RemoveOutOfOfficeAdmin(ctx, ooo.ID)
+	if err != nil {
+		t.Fatalf("expected admin deletion to succeed, got: %v", err)
 	}
 }

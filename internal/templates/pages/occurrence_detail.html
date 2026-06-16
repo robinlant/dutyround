@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="detail-grid">
+<div class="detail-grid" {{if not (or (eq .CurrentUser.Role "organizer") (eq .CurrentUser.Role "admin"))}}style="grid-template-columns: 1fr"{{end}}>
 
   <div class="stack">
     <div class="card">
