@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="detail-grid">
+<div class="detail-grid" {{if not (or (eq .CurrentUser.Role "organizer") (eq .CurrentUser.Role "admin"))}}style="grid-template-columns: 1fr"{{end}}>
 
   <div class="stack">
     <div class="card">
@@ -93,20 +93,5 @@
     {{template "comment_list" .}}
   </div>
 
-<script>
-(function() {
-  var toggle = document.getElementById('delete-series-toggle');
-  var menu = document.getElementById('delete-series-menu');
-  if (!toggle || !menu) return;
-  toggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-  });
-  document.addEventListener('click', function(e) {
-    if (!menu.contains(e.target) && e.target !== toggle) {
-      menu.style.display = 'none';
-    }
-  });
-})();
-</script>
+<script src="/static/js/occurrence-detail.js"></script>
 {{end}}

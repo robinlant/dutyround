@@ -1,17 +1,8 @@
 {{define "content"}}
 <div class="grid-3" style="margin-bottom:20px">
-  <div class="stat-card">
-    <div class="stat-value">{{.Stats.Total}}</div>
-    <div class="stat-label">{{t .Lang "profile.totalParticipations"}}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">{{.Stats.CurrentStreak}}</div>
-    <div class="stat-label">{{t .Lang "profile.currentStreak"}}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">{{.Stats.LongestStreak}}</div>
-    <div class="stat-label">{{t .Lang "profile.longestStreak"}}</div>
-  </div>
+  {{template "stat_card" dict "Value" .Stats.Total "Label" (t .Lang "profile.totalParticipations")}}
+  {{template "stat_card" dict "Value" .Stats.CurrentStreak "Label" (t .Lang "profile.currentStreak")}}
+  {{template "stat_card" dict "Value" .Stats.LongestStreak "Label" (t .Lang "profile.longestStreak")}}
 </div>
 
 <div class="card" style="margin-bottom:20px">
@@ -37,28 +28,91 @@
   </div>
 </div>
 
-<div class="card">
-  <div class="card-title">{{t .Lang "profile.userInfo"}}</div>
-  <div style="display:flex;align-items:center;gap:14px">
-    <div class="user-avatar" style="width:48px;height:48px;font-size:20px">
-      {{initial .ProfileUser.Name}}
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-title">{{t .Lang "profile.userInfo"}}</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div class="user-avatar" style="width:48px;height:48px;font-size:20px">
+          {{initial .ProfileUser.Name}}
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:600">{{.ProfileUser.Name}}</div>
+          <div style="font-size:12px;color:var(--text-muted)">{{username .ProfileUser.Email}}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            <span class="badge {{if eq .ProfileUser.Role "admin"}}badge-red{{else if eq .ProfileUser.Role "organizer"}}badge-accent{{else}}badge-gray{{end}}">{{.ProfileUser.Role}}</span>
+            {{if .IsCurrentlyOOO}}<span class="badge badge-yellow">{{t .Lang "profile.currentlyOOO"}}</span>{{end}}
+          </div>
+        </div>
+      </div>
     </div>
-    <div>
-      <div style="font-size:15px;font-weight:600">{{.ProfileUser.Name}}</div>
-      <div style="font-size:12px;color:var(--text-muted)">{{username .ProfileUser.Email}}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-        <span class="badge {{if eq .ProfileUser.Role "admin"}}badge-red{{else if eq .ProfileUser.Role "organizer"}}badge-accent{{else}}badge-gray{{end}}">{{.ProfileUser.Role}}</span>
-        {{if .IsCurrentlyOOO}}<span class="badge badge-yellow">{{t .Lang "profile.currentlyOOO"}}</span>{{end}}
-      </div>
-      {{if .OOOs}}
-      <div style="margin-top:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">{{t .Lang "profile.outOfOffice"}}</div>
-        {{range .OOOs}}
-          <div style="font-size:12px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--border)">{{formatDate .From}} &#8212; {{formatDate .To}}</div>
-        {{end}}
-      </div>
+
+    {{if $.CurrentUser}}{{if eq $.CurrentUser.Role "admin"}}
+    <div class="card">
+      <div class="card-title">{{t .Lang "users.setNewPassword"}} (Admin)</div>
+      <form method="POST" action="/users/{{.ProfileUser.ID}}/set-password" class="row password-form-row">
+        <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+        <input type="hidden" name="redirect" value="profile">
+        <div class="password-field" style="flex:1">
+          <label for="set-password-{{.ProfileUser.ID}}" class="sr-only">{{t $.Lang "users.setNewPassword"}}</label>
+          <input type="password" name="password" id="set-password-{{.ProfileUser.ID}}" placeholder="{{t $.Lang "users.setNewPassword"}}" required minlength="8" autocomplete="new-password">
+          <button type="button" class="password-toggle" data-password-toggle data-show-text="{{t $.Lang "password.show"}}" data-hide-text="{{t $.Lang "password.hide"}}" data-show-label="{{t $.Lang "password.showNew"}}" data-hide-label="{{t $.Lang "password.hideNew"}}" aria-controls="set-password-{{.ProfileUser.ID}}" aria-label="{{t $.Lang "password.showNew"}}" aria-pressed="false" title="{{t $.Lang "password.showNew"}}">
+            <span class="password-toggle-icon password-toggle-icon-show">{{template "icon-eye" .}}</span>
+            <span class="password-toggle-icon password-toggle-icon-hide">{{template "icon-eye-off" .}}</span>
+            <span data-password-toggle-text>{{t $.Lang "password.show"}}</span>
+          </button>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">{{t $.Lang "users.set"}}</button>
+      </form>
+    </div>
+    {{end}}{{end}}
+  </div>
+
+  <div class="card">
+    <div class="card-title">{{t .Lang "profile.outOfOffice"}}</div>
+    {{if .OOOs}}
+      <div class="stack-sm" style="margin-bottom:16px">
+      {{range .OOOs}}
+        <div class="row-between" style="background:var(--bg-hover);border-radius:var(--radius-sm);padding:8px 12px">
+          <div>
+            <span style="font-size:13px">{{formatDate .From}} &#8212; {{formatDate .To}}</span>
+            {{if .Reason}}<div style="font-size:12px;color:var(--text-muted)">{{.Reason}}</div>{{end}}
+          </div>
+          {{if $.CurrentUser}}{{if eq $.CurrentUser.Role "admin"}}
+          <form method="POST" action="/users/{{$.ProfileUser.ID}}/ooo/{{.ID}}/delete" style="margin:0" onsubmit="return confirm('{{t $.Lang "occ.confirmDelete"}}')">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+            <button type="submit" class="btn btn-danger btn-sm">{{t $.Lang "profile.remove"}}</button>
+          </form>
+          {{end}}{{end}}
+        </div>
       {{end}}
-    </div>
+      </div>
+    {{else}}
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">{{t .Lang "profile.noOOO"}}</p>
+    {{end}}
+
+    {{if $.CurrentUser}}{{if eq $.CurrentUser.Role "admin"}}
+    <hr class="divider">
+    <div style="font-size:11px;font-weight:600;margin-bottom:8px">{{t .Lang "profile.addPeriod"}} (Admin)</div>
+    <form method="POST" action="/users/{{.ProfileUser.ID}}/ooo" class="stack-sm">
+      <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="ooo-from">{{t .Lang "profile.from"}}</label>
+          <input type="date" name="from" id="ooo-from" required>
+        </div>
+        <div class="form-group">
+          <label for="ooo-to">{{t .Lang "profile.to"}}</label>
+          <input type="date" name="to" id="ooo-to" required>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label for="ooo-reason">{{t .Lang "profile.reason"}}</label>
+        <input type="text" name="reason" id="ooo-reason" placeholder="{{t .Lang "profile.optionalReason"}}">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="margin-top:12px">{{t .Lang "profile.addPeriod"}}</button>
+    </form>
+    {{end}}{{end}}
   </div>
 </div>
 
@@ -68,24 +122,7 @@
     <p style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px">{{t .Lang "profile.noOccurrencesOther"}}</p>
   {{else}}
     {{range .Occurrences}}
-      {{$group := index $.Groups .GroupID}}
-      <a href="/duties/{{.ID}}" style="display:block" class="{{if isPast .Date}}past{{end}}">
-        <div class="occ-item">
-          <div class="occ-info">
-            <div class="occ-title">
-              <span class="occ-status-dot {{.Status}}"></span>
-              {{.Title}}
-              {{if $group.ID}}<span class="badge {{if $group.Color}}badge-group-{{$group.Color}}{{else}}badge-accent{{end}}">{{$group.Name}}</span>{{end}}
-              {{if isPast .Date}}<span class="badge badge-gray">{{t $.Lang "occ.past"}}</span>{{end}}
-            </div>
-          </div>
-          <div class="occ-meta">
-            <div class="occ-date">{{formatDate .Date}}</div>
-            <div class="occ-slots">{{weekdayT $.Lang .Date}} &middot; {{relativeDay $.Lang .Date}}</div>
-            <div class="occ-slots">{{.ParticipantCount}}/{{.MinParticipants}}&#8211;{{.MaxParticipants}} {{t $.Lang "occ.people"}}</div>
-          </div>
-        </div>
-      </a>
+      {{template "duty_list_item" dict "Occurrence" . "Lang" $.Lang "Groups" $.Groups "HideDetails" true}}
     {{end}}
   {{end}}
 </div>

@@ -48,6 +48,7 @@ type OutOfOffice struct {
 	UserID int64
 	From   time.Time
 	To     time.Time
+	Reason string
 }
 
 type Comment struct {

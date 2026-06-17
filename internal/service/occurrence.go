@@ -26,8 +26,10 @@ type LeaderboardEntry struct {
 }
 
 type AvailableUser struct {
-	User  domain.User
-	Count int // participations so far, for sorting
+	User      domain.User
+	Count     int // participations so far, for sorting
+	IsOOO     bool
+	OOOReason string
 }
 
 type OccurrenceService struct {
@@ -61,6 +63,25 @@ func (s *OccurrenceService) CreateOccurrence(ctx context.Context, o domain.Occur
 }
 
 func (s *OccurrenceService) UpdateOccurrence(ctx context.Context, o domain.Occurrence) (domain.Occurrence, error) {
+	old, err := s.occurrences.FindByID(ctx, o.ID)
+	if err == nil && !old.Date.Equal(o.Date) {
+		parts, _ := s.participations.FindByOccurrence(ctx, o.ID)
+
+		ooos, err := s.ooo.FindAllForDate(ctx, o.Date)
+		if err != nil {
+			return domain.Occurrence{}, err
+		}
+		oooMap := make(map[int64]bool)
+		for _, ooo := range ooos {
+			oooMap[ooo.UserID] = true
+		}
+
+		for _, p := range parts {
+			if oooMap[p.UserID] {
+				return domain.Occurrence{}, errors.New("cannot change date: a participant is out of office on the new date")
+			}
+		}
+	}
 	return s.occurrences.Save(ctx, o)
 }
 
@@ -137,6 +158,10 @@ func (s *OccurrenceService) ListOccurrences(ctx context.Context) ([]domain.Occur
 	return s.occurrences.FindAll(ctx)
 }
 
+func (s *OccurrenceService) GetRecentTemplates(ctx context.Context) ([]domain.Occurrence, error) {
+	return s.occurrences.FindRecentTemplates(ctx)
+}
+
 func (s *OccurrenceService) GetParticipantCountsByOccurrence(ctx context.Context) (map[int64]int, error) {
 	return s.participations.CountAllByOccurrence(ctx)
 }
@@ -166,31 +191,47 @@ func (s *OccurrenceService) GetParticipants(ctx context.Context, occurrenceID in
 	return s.participations.FindUsersByOccurrence(ctx, occurrenceID)
 }
 
-// GetAvailableUsersForDate returns users who are not OOO on the given date,
-// sorted by total participation count ascending (least done first).
+// GetAvailableUsersForDate returns users with their participation count and OOO status,
+// sorted by total participation count ascending (least done first), with OOO users at the bottom.
 func (s *OccurrenceService) GetAvailableUsersForDate(ctx context.Context, date time.Time) ([]AvailableUser, error) {
 	allUsers, err := s.users.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	leaderboard, err := s.GetLeaderboard(ctx, time.Time{}, time.Time{}, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[int64]int)
+	for _, l := range leaderboard {
+		counts[l.User.ID] = l.Count
+	}
+
+	ooos, err := s.ooo.FindAllForDate(ctx, date)
+	if err != nil {
+		return nil, err
+	}
+	oooMap := make(map[int64]string)
+	for _, o := range ooos {
+		oooMap[o.UserID] = o.Reason
+	}
+
 	var available []AvailableUser
 	for _, u := range allUsers {
-		ooos, err := s.ooo.FindByUser(ctx, u.ID)
-		if err != nil {
-			return nil, err
-		}
-		if isOOOOnDate(ooos, date) {
-			continue
-		}
-		count, err := s.participations.CountByUser(ctx, u.ID)
-		if err != nil {
-			return nil, err
-		}
-		available = append(available, AvailableUser{User: u, Count: count})
+		reason, isOOO := oooMap[u.ID]
+		available = append(available, AvailableUser{
+			User:      u,
+			Count:     counts[u.ID],
+			IsOOO:     isOOO,
+			OOOReason: reason,
+		})
 	}
 
 	sort.Slice(available, func(i, j int) bool {
+		if available[i].IsOOO != available[j].IsOOO {
+			return !available[i].IsOOO
+		}
 		return available[i].Count < available[j].Count
 	})
 	return available, nil
@@ -341,22 +382,22 @@ func (s *OccurrenceService) checkOOO(ctx context.Context, userID int64, date tim
 	if err != nil {
 		return err
 	}
-	if isOOOOnDate(ooos, date) {
+	if getOOOOnDate(ooos, date) != nil {
 		return ErrUserOOO
 	}
 	return nil
 }
 
-func isOOOOnDate(ooos []domain.OutOfOffice, date time.Time) bool {
+func getOOOOnDate(ooos []domain.OutOfOffice, date time.Time) *domain.OutOfOffice {
 	d := toDate(date)
 	for _, o := range ooos {
 		from := toDate(o.From)
 		to := toDate(o.To)
 		if !d.Before(from) && !d.After(to) {
-			return true
+			return &o
 		}
 	}
-	return false
+	return nil
 }
 
 func toDate(t time.Time) time.Time {

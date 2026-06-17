@@ -27,6 +27,7 @@ type GroupRepository interface {
 type OccurrenceRepository interface {
 	FindByID(ctx context.Context, id int64) (domain.Occurrence, error)
 	FindAll(ctx context.Context) ([]domain.Occurrence, error)
+	FindRecentTemplates(ctx context.Context) ([]domain.Occurrence, error)
 	FindByGroup(ctx context.Context, groupID int64) ([]domain.Occurrence, error)
 	FindByDate(ctx context.Context, date time.Time) ([]domain.Occurrence, error)
 	FindOpenSpots(ctx context.Context) ([]domain.Occurrence, error)
@@ -82,7 +83,8 @@ type ExportRow struct {
 type OutOfOfficeRepository interface {
 	FindByID(ctx context.Context, id int64) (domain.OutOfOffice, error)
 	FindByUser(ctx context.Context, userID int64) ([]domain.OutOfOffice, error)
-	Save(ctx context.Context, ooo domain.OutOfOffice) (domain.OutOfOffice, error)
+	FindAllForDate(ctx context.Context, date time.Time) ([]domain.OutOfOffice, error)
+	Save(ctx context.Context, o domain.OutOfOffice) (domain.OutOfOffice, error)
 	Delete(ctx context.Context, id int64) error
 }
 

@@ -112,8 +112,7 @@ e2e-install:
 	npm install --no-save --no-package-lock @playwright/test
 	$(PLAYWRIGHT_BIN) install
 
-test-e2e e2e: e2e-profile e2e-security e2e-bugs e2e-password-theme
-
+test-e2e e2e: e2e-profile e2e-security e2e-bugs e2e-password-theme e2e-visual
 e2e-profile: $(PLAYWRIGHT_BIN)
 	$(call run_e2e,e2e-profile,3991,admin@test.com,profile-occurrences.spec.ts)
 
@@ -125,6 +124,9 @@ e2e-bugs: $(PLAYWRIGHT_BIN)
 
 e2e-password-theme: $(PLAYWRIGHT_BIN)
 	$(call run_e2e,e2e-password-theme,3994,admin@test.com,password-toggle-theme.spec.ts)
+
+e2e-visual: $(PLAYWRIGHT_BIN)
+	$(call run_e2e,e2e-visual,3995,admin@test.com,visual-regression.spec.ts)
 
 $(PLAYWRIGHT_BIN):
 	npm install --no-save --no-package-lock @playwright/test

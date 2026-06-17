@@ -66,7 +66,7 @@ var en = map[string]string{
 	"error.network": "Network error. Please check your connection and try again.",
 
 	// Duties page
-	"occ.all":         "All statuses",
+	"occ.all":         "All",
 	"occ.new":         "+ New duty",
 	"occ.none":        "No duties",
 	"occ.noneInGroup": "in this group",
@@ -125,7 +125,7 @@ var en = map[string]string{
 	"form.inSeries":        "in series",
 
 	// Calendar
-	"cal.allEvents":   "All statuses",
+	"cal.allEvents":   "All",
 	"cal.needsPeople": "Needs people",
 	"cal.filled":      "Filled",
 	"cal.overStaffed": "Over-staffed",
@@ -171,6 +171,8 @@ var en = map[string]string{
 	"profile.noOOO":               "No out-of-office periods.",
 	"profile.from":                "From",
 	"profile.to":                  "To",
+	"profile.reason":              "Reason",
+	"profile.optionalReason":      "Optional reason",
 	"profile.addPeriod":           "Add period",
 	"profile.remove":              "remove",
 	"profile.less":                "Less",
@@ -461,7 +463,7 @@ var de = map[string]string{
 	"error.network": "Netzwerkfehler. Bitte pr\u00fcfen Sie Ihre Verbindung.",
 
 	// Occurrences page
-	"occ.all":         "Alle Status",
+	"occ.all":         "Alle",
 	"occ.new":         "+ Neuer Einsatz",
 	"occ.none":        "Keine Eins\u00e4tze",
 	"occ.noneInGroup": "in dieser Gruppe",
@@ -520,7 +522,7 @@ var de = map[string]string{
 	"form.inSeries":        "in der Serie",
 
 	// Calendar
-	"cal.allEvents":   "Alle Status",
+	"cal.allEvents":   "Alle",
 	"cal.needsPeople": "Braucht Leute",
 	"cal.filled":      "Besetzt",
 	"cal.overStaffed": "\u00dcberbesetzt",
@@ -566,6 +568,8 @@ var de = map[string]string{
 	"profile.noOOO":               "Keine Abwesenheitszeitr\u00e4ume.",
 	"profile.from":                "Von",
 	"profile.to":                  "Bis",
+	"profile.reason":              "Grund",
+	"profile.optionalReason":      "Optionaler Grund",
 	"profile.addPeriod":           "Zeitraum hinzuf\u00fcgen",
 	"profile.remove":              "entfernen",
 	"profile.less":                "Weniger",
@@ -856,7 +860,7 @@ var ua = map[string]string{
 	"error.network": "Помилка мережі. Перевірте з'єднання та спробуйте ще раз.",
 
 	// Duties page
-	"occ.all":         "Усі статуси",
+	"occ.all":         "Усі",
 	"occ.new":         "+ Новий захід",
 	"occ.none":        "Немає заходів",
 	"occ.noneInGroup": "у цій групі",
@@ -915,7 +919,7 @@ var ua = map[string]string{
 	"form.inSeries":        "у серії",
 
 	// Calendar
-	"cal.allEvents":   "Усі статуси",
+	"cal.allEvents":   "Усі",
 	"cal.needsPeople": "Потрібні люди",
 	"cal.filled":      "Заповнено",
 	"cal.overStaffed": "Надлишок",
@@ -961,6 +965,8 @@ var ua = map[string]string{
 	"profile.noOOO":               "Немає періодів відсутності.",
 	"profile.from":                "Від",
 	"profile.to":                  "До",
+	"profile.reason":              "Причина",
+	"profile.optionalReason":      "Необов'язкова причина",
 	"profile.addPeriod":           "Додати період",
 	"profile.remove":              "видалити",
 	"profile.less":                "Менше",
