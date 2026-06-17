@@ -66,7 +66,7 @@ func (s *OccurrenceService) UpdateOccurrence(ctx context.Context, o domain.Occur
 	old, err := s.occurrences.FindByID(ctx, o.ID)
 	if err == nil && !old.Date.Equal(o.Date) {
 		parts, _ := s.participations.FindByOccurrence(ctx, o.ID)
-		
+
 		ooos, err := s.ooo.FindAllForDate(ctx, o.Date)
 		if err != nil {
 			return domain.Occurrence{}, err

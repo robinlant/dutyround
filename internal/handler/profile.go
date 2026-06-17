@@ -180,7 +180,7 @@ func (h *ProfileHandler) AddOOO(c *gin.Context) {
 		return
 	}
 	slog.Info("ooo_added", "user_id", user.ID, "ooo_id", ooo.ID)
-	
+
 	ooos, _ := h.users.GetOutOfOffice(c.Request.Context(), user.ID)
 	c.HTML(http.StatusOK, "ooo_list", gin.H{
 		"CurrentUser": user,
@@ -203,19 +203,15 @@ func (h *ProfileHandler) DeleteOOO(c *gin.Context) {
 	if err := h.users.RemoveOutOfOffice(c.Request.Context(), id, user.ID); err != nil {
 		if errors.Is(err, service.ErrOOONotOwner) {
 			slog.Warn("ooo: delete denied — not owner", "user_id", user.ID, "ooo_id", id)
-			c.Header("HX-Retarget", "#ooo-error")
-			c.Header("HX-Reswap", "innerHTML")
-			c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; `+i18n.T(lang, "flash.cannotDeleteSelf")+`</div>`)
+			c.String(http.StatusForbidden, i18n.T(lang, "flash.cannotDeleteSelf"))
 			return
 		}
 		slog.Error("ooo: delete failed", "user_id", user.ID, "ooo_id", id, "error", err)
-		c.Header("HX-Retarget", "#ooo-error")
-		c.Header("HX-Reswap", "innerHTML")
-		c.String(http.StatusOK, `<div class="flash flash-error" style="margin-top:8px">&#10005; Failed to delete OOO</div>`)
+		c.String(http.StatusInternalServerError, "Failed to delete OOO")
 		return
 	}
 	slog.Info("ooo_deleted", "user_id", user.ID, "ooo_id", id)
-	
+
 	ooos, _ := h.users.GetOutOfOffice(c.Request.Context(), user.ID)
 	c.HTML(http.StatusOK, "ooo_list", gin.H{
 		"CurrentUser": user,

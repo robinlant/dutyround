@@ -63,7 +63,7 @@ func (r *OutOfOfficeRepository) FindAllForDate(ctx context.Context, date time.Ti
 		if err := rows.Scan(&o.ID, &o.UserID, &o.From, &o.To, &o.Reason); err != nil {
 			return nil, err
 		}
-		
+
 		oy1, om1, od1 := o.From.Date()
 		oy2, om2, od2 := o.To.Date()
 		d1 := time.Date(oy1, om1, od1, 0, 0, 0, 0, time.UTC)
@@ -75,7 +75,6 @@ func (r *OutOfOfficeRepository) FindAllForDate(ctx context.Context, date time.Ti
 	}
 	return list, rows.Err()
 }
-
 
 func (r *OutOfOfficeRepository) Save(ctx context.Context, o domain.OutOfOffice) (domain.OutOfOffice, error) {
 	if o.ID == 0 {

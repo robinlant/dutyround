@@ -90,7 +90,6 @@ func TestAddOutOfOffice_SingleDayOverlap(t *testing.T) {
 	}
 }
 
-
 func TestAddOutOfOffice_PartialOverlapAtEnd(t *testing.T) {
 	db := setupTestDB(t)
 	ctx := context.Background()
