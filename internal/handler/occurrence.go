@@ -122,7 +122,10 @@ func (h *OccurrenceHandler) ShowCreate(c *gin.Context) {
 	groups, _ := h.groups.List(c.Request.Context())
 
 	// All occurrences sorted by date descending for the copy-from feature
-	allOccs, _ := h.occurrences.GetRecentTemplates(c.Request.Context())
+	allOccs, err := h.occurrences.GetRecentTemplates(c.Request.Context())
+	if err != nil {
+		slog.Error("occurrence: failed to get recent templates", "error", err)
+	}
 	sort.Slice(allOccs, func(i, j int) bool {
 		return allOccs[i].Date.After(allOccs[j].Date)
 	})

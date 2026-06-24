@@ -345,6 +345,8 @@ var en = map[string]string{
 	"flash.groupNotFound":               "Selected group does not exist.",
 	"flash.userNotFound":                "User not found.",
 	"flash.oooOverlap":                  "This period overlaps with an existing out-of-office entry.",
+	"flash.oooAdded":                    "Out-of-office period added successfully.",
+	"flash.oooDeleted":                  "Out-of-office period deleted successfully.",
 
 	// Page titles
 	"title.dashboard":      "Dashboard",
@@ -742,6 +744,8 @@ var de = map[string]string{
 	"flash.groupNotFound":               "Ausgew\u00e4hlte Gruppe existiert nicht.",
 	"flash.userNotFound":                "Benutzer nicht gefunden.",
 	"flash.oooOverlap":                  "Dieser Zeitraum \u00fcberschneidet sich mit einem bestehenden Abwesenheitseintrag.",
+	"flash.oooAdded":                    "Abwesenheitszeitraum erfolgreich hinzugef\u00fcgt.",
+	"flash.oooDeleted":                  "Abwesenheitszeitraum erfolgreich gel\u00f6scht.",
 
 	// Page titles
 	"title.dashboard":      "Dashboard",
@@ -1139,6 +1143,8 @@ var ua = map[string]string{
 	"flash.groupNotFound":               "Обрана група не існує.",
 	"flash.userNotFound":                "Користувача не знайдено.",
 	"flash.oooOverlap":                  "Цей період перетинається з наявним записом про відсутність.",
+	"flash.oooAdded":                    "Період відсутності успішно додано.",
+	"flash.oooDeleted":                  "Період відсутності успішно видалено.",
 
 	// Page titles
 	"title.dashboard":      "Панель",

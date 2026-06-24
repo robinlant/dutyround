@@ -47,7 +47,14 @@ func (r *OccurrenceRepository) FindByGroup(ctx context.Context, groupID int64) (
 
 func (r *OccurrenceRepository) FindRecentTemplates(ctx context.Context) ([]domain.Occurrence, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, group_id, title, description, MAX(date) as date, min_participants, max_participants, allow_over_limit, recurrence_id, created_at FROM occurrences GROUP BY title, group_id ORDER BY date DESC`)
+		`SELECT `+occurrenceCols+` FROM occurrences o1
+		WHERE o1.date = (
+			SELECT MAX(o2.date) FROM occurrences o2
+			WHERE o2.title = o1.title
+			AND COALESCE(o2.group_id, 0) = COALESCE(o1.group_id, 0)
+		)
+		GROUP BY title, COALESCE(group_id, 0)
+		ORDER BY date DESC`)
 	if err != nil {
 		return nil, err
 	}
